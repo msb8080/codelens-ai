@@ -22,6 +22,7 @@ public class CorsConfig {
         // 允许的前端域名
         config.setAllowedOrigins(List.of(
             "https://msb8080.github.io",   // GitHub Pages
+            "https://codelens-ai-ghfh.onrender.com",  // Render
             "http://localhost:3000",        // 本地开发
             "http://localhost:5173",        // Vite
             "http://localhost:8090"         // 本应用

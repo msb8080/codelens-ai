@@ -56,7 +56,7 @@ function defaultConfig() {
     return {
         apiUrl: 'https://codelens-ai-ghfh.onrender.com',
         models: [
-            { id:'siliconflow-free', name:'Qwen2.5-7B (免费)', provider:'硅基流动', baseUrl:'https://api.siliconflow.cn', apiKey:'', model:'Qwen/Qwen2.5-7B-Instruct', active:true },
+            { id:'siliconflow-free', name:'Qwen2.5-7B (免费)', provider:'硅基流动', baseUrl:'https://api.siliconflow.cn', apiKey:'sk-xvrssvsidkkjmxikhzgwwesvfayihaztdjhogblfdybphcha', model:'Qwen/Qwen2.5-7B-Instruct', active:true },
             { id:'mimo', name:'mimo-v2.5-pro', provider:'小米 mimo', baseUrl:'https://token-plan-cn.xiaomimimo.com', apiKey:'', model:'mimo-v2.5-pro', active:true },
         ],
         agents: JSON.parse(JSON.stringify(BUILTIN_AGENTS)),

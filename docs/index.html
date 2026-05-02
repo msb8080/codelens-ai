@@ -7,42 +7,20 @@
     <title>OmniAgent — 全能智能体平台</title>
     <meta name="description" content="可配置 MCP / Skill / Rules / 多模型的多 Agent 智能体平台" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
-
-    <!-- 字体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@300,1&display=swap" rel="stylesheet" />
-
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                        display: ['"Space Grotesk"', 'sans-serif'],
-                        mono: ['"Space Mono"', 'monospace'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#fcfaff', 100: '#f8f5fc', 200: '#e5e0f5',
-                            400: '#a894df', 500: '#7e5adc', 600: '#6d28d9', 900: '#2b1b54',
-                        },
-                        surface: { dark: '#312052', darker: '#1a1030', card: '#3d2966' }
-                    }
-                }
-            }
-        }
+        tailwind.config = { theme: { extend: {
+            fontFamily: { sans:['"Plus Jakarta Sans"','sans-serif'], display:['"Space Grotesk"','sans-serif'], mono:['"Space Mono"','monospace'] },
+            colors: { brand:{50:'#fcfaff',100:'#f8f5fc',200:'#e5e0f5',400:'#a894df',500:'#7e5adc',600:'#6d28d9',900:'#2b1b54'}, surface:{dark:'#312052',darker:'#1a1030',card:'#3d2966'} }
+        }}}
     </script>
-
-    <!-- GSAP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <!-- Markdown & Mermaid -->
     <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-
     <link rel="stylesheet" href="css/style.css">
 </head>
 
@@ -51,25 +29,22 @@
     <div class="dot-matrix"></div>
 
     <main class="main-container">
-
         <!-- Hero -->
         <section class="hero gsap-reveal">
-            <div class="hero-badge">
-                <span class="material-symbols-outlined">auto_awesome</span>
-                Multi-Agent Platform
-            </div>
+            <div class="hero-badge"><span class="material-symbols-outlined">auto_awesome</span> Multi-Agent Platform</div>
             <h1>Omni<span>Agent</span></h1>
             <p class="hero-desc">
-                内置 PRD · 设计 · 编码 · 测试 · 部署 · 烹饪 · 股票分析等智能体<br>
-                可自由配置 MCP 服务器 · Skill 技能 · Rules 规则 · 多模型 API<br>
+                通用助手 · 烹饪 · 股票 · 游戏 · PRD · 编码 · 测试 · 部署<br>
+                MCP · Skills · Rules · 多模型 — 全部可自由配置<br>
                 <strong>OmniAgent 是大脑，MCP/Skill/Rule 是手脚</strong>
             </p>
+            <div class="disclaimer">⚠️ 个人学习项目 · 非商业用途 · 数据存储在浏览器本地 · 不保证服务可用性</div>
         </section>
 
         <!-- 技术栈 -->
         <div class="tech-stack gsap-reveal">
             <div class="tech-tag"><span class="material-symbols-outlined">psychology</span> Multi-Agent</div>
-            <div class="tech-tag"><span class="material-symbols-outlined">hub</span> MCP Protocol</div>
+            <div class="tech-tag"><span class="material-symbols-outlined">hub</span> MCP</div>
             <div class="tech-tag"><span class="material-symbols-outlined">extension</span> Skills</div>
             <div class="tech-tag"><span class="material-symbols-outlined">policy</span> Rules</div>
             <div class="tech-tag"><span class="material-symbols-outlined">smart_toy</span> 多模型</div>
@@ -87,8 +62,8 @@
                         <div class="chat-header-left">
                             <div class="chat-avatar" id="agentAvatar">🧠</div>
                             <div class="chat-info">
-                                <h3 id="agentName">OmniAgent</h3>
-                                <p id="agentDesc">全能智能体 · 选择一个助手开始</p>
+                                <h3 id="agentName">通用助手</h3>
+                                <p id="agentDesc">问答、翻译、写作、头脑风暴</p>
                             </div>
                         </div>
                         <div class="header-right">
@@ -101,7 +76,7 @@
                         </div>
                     </div>
 
-                    <!-- Agent 选择侧边栏 -->
+                    <!-- Agent 侧边栏 -->
                     <div class="agent-sidebar" id="agentSidebar">
                         <div class="agent-sidebar-header">
                             <h4>选择智能体</h4>
@@ -114,30 +89,7 @@
                     <div class="agent-sidebar-overlay" id="agentSidebarOverlay" style="display:none;" onclick="toggleAgentPanel()"></div>
 
                     <!-- 消息区 -->
-                    <div class="messages" id="messages">
-                        <div class="message ai">
-                            <div class="msg-avatar">🧠</div>
-                            <div class="msg-body">
-                                <div class="bubble">
-                                    👋 你好！我是 <strong>OmniAgent</strong>
-                                    <br><br>
-                                    我是一个多智能体平台，内置了多种专业助手：
-                                    <ul>
-                                        <li>📋 <strong>PRD 助手</strong> — 需求分析与产品文档</li>
-                                        <li>🎨 <strong>设计助手</strong> — UI/UX 设计方案</li>
-                                        <li>💻 <strong>编码助手</strong> — 代码编写与审查</li>
-                                        <li>🧪 <strong>测试助手</strong> — 测试用例与自动化</li>
-                                        <li>🚀 <strong>部署助手</strong> — DevOps 与 CI/CD</li>
-                                        <li>🍳 <strong>烹饪助手</strong> — 菜谱推荐与营养分析</li>
-                                        <li>📈 <strong>股票助手</strong> — 行情分析与投资建议</li>
-                                    </ul>
-                                    <br>
-                                    点击左上角 <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">diversity_3</span> 选择一个智能体开始对话！
-                                </div>
-                                <div class="msg-meta">就绪</div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="messages" id="messages"></div>
 
                     <!-- 输入区 -->
                     <div class="input-area">
@@ -147,8 +99,7 @@
                                 <span id="currentModelLabel">--</span>
                                 <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
                             </div>
-                            <textarea id="input" rows="2" placeholder="选择一个智能体后开始对话... (Enter 发送, Shift+Enter 换行)" disabled></textarea>
-                            <!-- 模型选择下拉 -->
+                            <textarea id="input" rows="2" placeholder="输入你的问题... (Enter 发送, Shift+Enter 换行)"></textarea>
                             <div class="model-dropdown" id="modelDropdown" style="display:none;">
                                 <div class="model-dropdown-header">切换模型</div>
                                 <div id="modelList"></div>
@@ -159,7 +110,7 @@
                                 </div>
                             </div>
                         </div>
-                        <button class="send-btn" id="sendBtn" onclick="send()" disabled>
+                        <button class="send-btn" id="sendBtn" onclick="send()">
                             <span class="material-symbols-outlined">send</span> 发送
                         </button>
                     </div>
@@ -169,17 +120,22 @@
 
         <!-- 底部状态 -->
         <div class="status-bar gsap-reveal">
-            <div class="status-item">
-                <span class="material-symbols-outlined">speed</span>
-                <span id="latencyDisplay">延迟: --</span>
+            <div class="status-item"><span class="material-symbols-outlined">speed</span><span id="latencyDisplay">延迟: --</span></div>
+            <div class="status-item"><span class="material-symbols-outlined">chat</span><span id="msgCount">消息: 0</span></div>
+            <div class="status-item"><span class="material-symbols-outlined">psychology</span><span id="activeAgentDisplay">通用助手</span></div>
+        </div>
+
+        <!-- ========== 通用编辑模态框 ========== -->
+        <div class="modal-overlay" id="modalOverlay" style="display:none;" onclick="closeModal()"></div>
+        <div class="modal-panel" id="modalPanel" style="display:none;">
+            <div class="modal-header">
+                <h3 id="modalTitle">编辑</h3>
+                <button class="modal-close" onclick="closeModal()"><span class="material-symbols-outlined">close</span></button>
             </div>
-            <div class="status-item">
-                <span class="material-symbols-outlined">chat</span>
-                <span id="msgCount">消息: 1</span>
-            </div>
-            <div class="status-item" id="activeAgentStat">
-                <span class="material-symbols-outlined">psychology</span>
-                <span id="activeAgentDisplay">智能体: 未选择</span>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <button class="modal-cancel" onclick="closeModal()">取消</button>
+                <button class="modal-save" id="modalSaveBtn" onclick="modalSave()">保存</button>
             </div>
         </div>
 
@@ -188,120 +144,22 @@
         <div class="config-panel" id="configPanel" style="display:none;">
             <div class="config-panel-header">
                 <h3><span class="material-symbols-outlined">settings</span> 系统配置</h3>
-                <button class="config-close-btn" onclick="closeConfig()">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
+                <button class="config-close-btn" onclick="closeConfig()"><span class="material-symbols-outlined">close</span></button>
             </div>
-
             <div class="config-tabs">
-                <button class="config-tab active" data-tab="models" onclick="switchConfigTab('models')">
-                    <span class="material-symbols-outlined">smart_toy</span> 模型
-                </button>
-                <button class="config-tab" data-tab="mcp" onclick="switchConfigTab('mcp')">
-                    <span class="material-symbols-outlined">hub</span> MCP
-                </button>
-                <button class="config-tab" data-tab="skills" onclick="switchConfigTab('skills')">
-                    <span class="material-symbols-outlined">extension</span> Skills
-                </button>
-                <button class="config-tab" data-tab="rules" onclick="switchConfigTab('rules')">
-                    <span class="material-symbols-outlined">policy</span> Rules
-                </button>
-                <button class="config-tab" data-tab="agents" onclick="switchConfigTab('agents')">
-                    <span class="material-symbols-outlined">diversity_3</span> 智能体
-                </button>
-                <button class="config-tab" data-tab="api" onclick="switchConfigTab('api')">
-                    <span class="material-symbols-outlined">cloud</span> API
-                </button>
+                <button class="config-tab active" data-tab="models" onclick="switchConfigTab('models')"><span class="material-symbols-outlined">smart_toy</span> 模型</button>
+                <button class="config-tab" data-tab="mcp" onclick="switchConfigTab('mcp')"><span class="material-symbols-outlined">hub</span> MCP</button>
+                <button class="config-tab" data-tab="skills" onclick="switchConfigTab('skills')"><span class="material-symbols-outlined">extension</span> Skills</button>
+                <button class="config-tab" data-tab="rules" onclick="switchConfigTab('rules')"><span class="material-symbols-outlined">policy</span> Rules</button>
+                <button class="config-tab" data-tab="agents" onclick="switchConfigTab('agents')"><span class="material-symbols-outlined">diversity_3</span> 智能体</button>
+                <button class="config-tab" data-tab="api" onclick="switchConfigTab('api')"><span class="material-symbols-outlined">cloud</span> API</button>
             </div>
-
-            <!-- 模型 -->
-            <div class="config-content" id="tab-models">
-                <div class="config-section">
-                    <div class="config-section-header">
-                        <h4>模型配置</h4>
-                        <button class="add-btn" onclick="addModel()"><span class="material-symbols-outlined">add</span> 添加</button>
-                    </div>
-                    <p class="config-hint">配置 OpenAI 兼容模型 API（OpenAI / Ollama / 硅基流动 / 小米 mimo 等）</p>
-                    <div id="modelConfigList"></div>
-                    <div class="config-empty" id="modelEmpty">
-                        <span class="material-symbols-outlined">smart_toy</span>
-                        还没有配置模型，点击上方"添加"开始
-                    </div>
-                </div>
-            </div>
-
-            <!-- MCP -->
-            <div class="config-content" id="tab-mcp" style="display:none;">
-                <div class="config-section">
-                    <div class="config-section-header">
-                        <h4>MCP 服务器</h4>
-                        <button class="add-btn" onclick="addMcpServer()"><span class="material-symbols-outlined">add</span> 添加</button>
-                    </div>
-                    <p class="config-hint">连接 MCP 服务器，为智能体扩展工具能力（文件系统、数据库、浏览器、Git 等）</p>
-                    <div id="mcpConfigList"></div>
-                    <div class="config-empty" id="mcpEmpty">
-                        <span class="material-symbols-outlined">hub</span>
-                        还没有配置 MCP 服务器
-                    </div>
-                </div>
-            </div>
-
-            <!-- Skills -->
-            <div class="config-content" id="tab-skills" style="display:none;">
-                <div class="config-section">
-                    <div class="config-section-header">
-                        <h4>Skills 技能</h4>
-                        <button class="add-btn" onclick="addSkill()"><span class="material-symbols-outlined">add</span> 添加</button>
-                    </div>
-                    <p class="config-hint">定义可复用的技能文件（Markdown），为智能体注入领域知识和操作流程</p>
-                    <div id="skillConfigList"></div>
-                    <div class="config-empty" id="skillEmpty">
-                        <span class="material-symbols-outlined">extension</span>
-                        还没有配置 Skills
-                    </div>
-                </div>
-            </div>
-
-            <!-- Rules -->
-            <div class="config-content" id="tab-rules" style="display:none;">
-                <div class="config-section">
-                    <div class="config-section-header">
-                        <h4>Rules 规则</h4>
-                        <button class="add-btn" onclick="addRule()"><span class="material-symbols-outlined">add</span> 添加</button>
-                    </div>
-                    <p class="config-hint">全局行为规则，约束所有智能体的输出格式、编码风格和安全策略</p>
-                    <div id="ruleConfigList"></div>
-                    <div class="config-empty" id="ruleEmpty">
-                        <span class="material-symbols-outlined">policy</span>
-                        还没有配置 Rules
-                    </div>
-                </div>
-            </div>
-
-            <!-- 智能体管理 -->
-            <div class="config-content" id="tab-agents" style="display:none;">
-                <div class="config-section">
-                    <div class="config-section-header">
-                        <h4>智能体管理</h4>
-                        <button class="add-btn" onclick="addAgent()"><span class="material-symbols-outlined">add</span> 新建</button>
-                    </div>
-                    <p class="config-hint">管理内置和自定义智能体。每个智能体可绑定专属的 MCP / Skill / Rules 和默认模型</p>
-                    <div id="agentConfigList"></div>
-                </div>
-            </div>
-
-            <!-- API -->
-            <div class="config-content" id="tab-api" style="display:none;">
-                <div class="config-section">
-                    <h4>后端 API 地址</h4>
-                    <p class="config-hint">OmniAgent 后端服务地址</p>
-                    <div class="config-row">
-                        <input type="text" id="apiUrlInput" placeholder="https://your-omniagent-api.com" class="config-input" />
-                        <button class="save-btn" onclick="saveApiUrl()">保存</button>
-                    </div>
-                </div>
-            </div>
-
+            <div class="config-content" id="tab-models"></div>
+            <div class="config-content" id="tab-mcp" style="display:none;"></div>
+            <div class="config-content" id="tab-skills" style="display:none;"></div>
+            <div class="config-content" id="tab-rules" style="display:none;"></div>
+            <div class="config-content" id="tab-agents" style="display:none;"></div>
+            <div class="config-content" id="tab-api" style="display:none;"></div>
             <div class="config-panel-footer">
                 <button class="export-btn" onclick="exportConfig()"><span class="material-symbols-outlined">download</span> 导出</button>
                 <button class="import-btn" onclick="document.getElementById('importFileInput').click()"><span class="material-symbols-outlined">upload</span> 导入</button>
@@ -310,11 +168,10 @@
         </div>
 
         <footer class="gsap-reveal">
-            <p>OmniAgent — 可配置的多智能体平台 · 大脑 + 手脚</p>
+            <p>OmniAgent — 个人学习项目 · 非商业用途 · MIT License</p>
         </footer>
     </main>
 
     <script src="js/app.js"></script>
 </body>
-
 </html>

@@ -21,31 +21,38 @@ try {
 }
 
 function parseMarkdown(text) {
-    if (useMarked) {
-        try {
-            return marked.parse(text);
-        } catch (e) {
-            // 部分 markdown 解析失败时回退
+    if (!useMarked || !text) return fallbackMd(text || '');
+
+    // 检查是否有未闭合的代码块 ``` 
+    const opens = (text.match(/```/g) || []).length;
+    if (opens % 2 === 1) {
+        // 有未闭合的代码块 → 找到最后一个 ```，之后的内容不做 markdown 解析
+        const lastIdx = text.lastIndexOf('```');
+        const closed = text.substring(0, lastIdx);
+        const unclosed = text.substring(lastIdx);
+
+        let html = '';
+        if (closed) {
+            try { html = marked.parse(closed); } catch { html = fallbackMd(closed); }
         }
+        // 未闭合部分: 转义 HTML + 换行，作为纯文本显示
+        html += '<pre><code>' + escapeHtml(unclosed) + '</code></pre>';
+        return html;
     }
-    // 回退: 简易正则
-    return text
-        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>')
-        .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-        .replace(/\n\n/g, '<br><br>')
-        .replace(/\n/g, '<br>');
+
+    // 所有代码块都已闭合 → 完整 markdown 解析
+    try {
+        return marked.parse(text);
+    } catch {
+        return fallbackMd(text);
+    }
 }
 
-// 流式渲染: 只做转义+换行，避免不完整 markdown 产生错误 HTML
 function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function renderStreaming(text) {
+function fallbackMd(text) {
     return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
@@ -158,9 +165,11 @@ async function send() {
                         let token;
                         try { token = JSON.parse(raw); } catch { token = raw; }
                         fullText += token;
-                        // 流式中: 只转义+换行，不做 markdown 解析
-                        bubbleEl.innerHTML = renderStreaming(fullText) +
+                        // 实时 markdown 渲染（未闭合代码块会自动降级为纯文本）
+                        bubbleEl.innerHTML = parseMarkdown(fullText) +
                             '<span class="streaming-cursor"></span>';
+                        // 闭合的 mermaid 代码块实时渲染
+                        renderMermaidInElement(bubbleEl);
                         messages.scrollTop = messages.scrollHeight;
                     } else if (currentEvent === 'done') {
                         try {
@@ -184,8 +193,8 @@ async function send() {
         }
 
     } catch (e) {
-        // 出错: 先用简单渲染显示已有内容
-        bubbleEl.innerHTML = renderStreaming(fullText || '') +
+        // 出错: 渲染已有内容
+        bubbleEl.innerHTML = parseMarkdown(fullText || '') +
             '<br><br>⚠️ 连接失败：' + escapeHtml(e.message);
         const cursor = bubbleEl.querySelector('.streaming-cursor');
         if (cursor) cursor.remove();

@@ -3,80 +3,99 @@
 // =========================================
 
 // ===== 配置 =====
-// API 配置 - 支持 GitHub Pages 跨域访问 Render 后端
-const API_BASE = new URLSearchParams(window.location.search).get('api')
-    || localStorage.getItem('codelens-api-url')
-    || 'https://codelens-ai-ghfh.onrender.com';
+const API_BASE = window.location.origin;
 const messages = document.getElementById('messages');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('sendBtn');
 
-// ===== Markdown 渲染 (marked.js) =====
-marked.setOptions({
-    breaks: true,
-    gfm: true,
-    highlight: function (code, lang) {
-        // 语言标签着色
-        return code;
-    }
-});
-
-function parseMarkdown(text) {
-    // 先用 marked 渲染 markdown
-    let html = marked.parse(text);
-    return html;
+// ===== Markdown 渲染 =====
+let useMarked = false;
+try {
+    marked.setOptions({ breaks: true, gfm: true });
+    useMarked = true;
+    console.log('[CodeLens] marked.js loaded');
+} catch (e) {
+    console.warn('[CodeLens] marked.js not available, fallback to regex', e);
 }
 
-// ===== Mermaid 初始化 =====
-mermaid.initialize({
-    startOnLoad: false,
-    theme: 'dark',
-    themeVariables: {
-        primaryColor: '#7e5adc',
-        primaryTextColor: '#fff',
-        primaryBorderColor: '#a894df',
-        lineColor: '#a894df',
-        secondaryColor: '#3d2966',
-        tertiaryColor: '#1a1030',
-        background: 'transparent',
-        mainBkg: '#3d2966',
-        nodeBorder: '#a894df',
-        clusterBkg: 'rgba(61,41,102,0.5)',
-        clusterBorder: '#a894df',
-        titleColor: '#fff'
-    },
-    fontFamily: 'Plus Jakarta Sans, sans-serif',
-    flowchart: { curve: 'basis' },
-    securityLevel: 'loose'
-});
+function parseMarkdown(text) {
+    if (useMarked) {
+        try {
+            return marked.parse(text);
+        } catch (e) {
+            // 部分 markdown 解析失败时回退
+        }
+    }
+    // 回退: 简易正则
+    return text
+        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+}
 
+// ===== Mermaid 渲染 =====
+let useMermaid = false;
 let mermaidCounter = 0;
 
+try {
+    mermaid.initialize({
+        startOnLoad: false,
+        theme: 'dark',
+        themeVariables: {
+            primaryColor: '#7e5adc',
+            primaryTextColor: '#fff',
+            primaryBorderColor: '#a894df',
+            lineColor: '#a894df',
+            secondaryColor: '#3d2966',
+            tertiaryColor: '#1a1030',
+            background: 'transparent',
+            mainBkg: '#3d2966',
+            nodeBorder: '#a894df',
+            titleColor: '#fff'
+        },
+        fontFamily: 'Plus Jakarta Sans, sans-serif',
+        securityLevel: 'loose'
+    });
+    useMermaid = true;
+    console.log('[CodeLens] mermaid.js loaded');
+} catch (e) {
+    console.warn('[CodeLens] mermaid.js not available', e);
+}
+
 function renderMermaidInElement(container) {
-    const mermaidDivs = container.querySelectorAll('code.language-mermaid');
-    mermaidDivs.forEach((codeEl) => {
+    if (!useMermaid) return;
+
+    // 查找 ```mermaid 代码块 (marked 会渲染为 <pre><code class="language-mermaid">)
+    const codeEls = container.querySelectorAll('code.language-mermaid');
+    codeEls.forEach((codeEl) => {
         const preEl = codeEl.closest('pre');
         if (!preEl) return;
 
-        const graphDef = codeEl.textContent;
+        const graphDef = codeEl.textContent.trim();
+        if (!graphDef) return;
+
         const id = 'mermaid-' + (++mermaidCounter);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mermaid';
+        wrapper.id = id;
 
-        const div = document.createElement('div');
-        div.className = 'mermaid';
-        div.id = id;
-        div.textContent = graphDef;
-
-        preEl.replaceWith(div);
+        preEl.replaceWith(wrapper);
 
         try {
             mermaid.render(id + '-svg', graphDef).then(({ svg }) => {
-                div.innerHTML = svg;
+                wrapper.innerHTML = svg;
             }).catch(err => {
-                div.innerHTML = `<div style="color:#f87171;padding:0.5rem;">Mermaid 渲染失败: ${err.message}</div>`;
-                div.textContent = graphDef;
+                wrapper.innerHTML = '<pre style="color:#f87171;">Mermaid 语法错误: ' +
+                    (err.message || err) + '</pre>';
+                wrapper.textContent = graphDef;
             });
         } catch (err) {
-            div.innerHTML = `<div style="color:#f87171;padding:0.5rem;">Mermaid 渲染失败: ${err.message}</div>`;
+            wrapper.innerHTML = '<pre style="color:#f87171;">Mermaid 渲染失败</pre>';
         }
     });
 }
@@ -86,13 +105,11 @@ async function send() {
     const question = input.value.trim();
     if (!question) return;
 
-    // 添加用户消息
     addMessage('user', question);
     input.value = '';
     sendBtn.disabled = true;
     sendBtn.innerHTML = '<span class="material-symbols-outlined">pending</span> 思考中...';
 
-    // 创建 AI 消息容器（空的，等待流式填充）
     const aiMsgEl = createStreamingMessage();
     const bubbleEl = aiMsgEl.querySelector('.bubble');
     let fullText = '';
@@ -116,7 +133,6 @@ async function send() {
 
             buffer += decoder.decode(value, { stream: true });
 
-            // 解析 SSE 格式
             const lines = buffer.split('\n');
             buffer = lines.pop();
 
@@ -128,7 +144,8 @@ async function send() {
                     const data = line.slice(5);
                     if (currentEvent === 'token') {
                         fullText += data;
-                        bubbleEl.innerHTML = parseMarkdown(fullText) + '<span class="streaming-cursor"></span>';
+                        bubbleEl.innerHTML = parseMarkdown(fullText) +
+                            '<span class="streaming-cursor"></span>';
                         messages.scrollTop = messages.scrollHeight;
                     } else if (currentEvent === 'done') {
                         try {
@@ -143,10 +160,10 @@ async function send() {
             }
         }
 
-        // 流式结束后渲染 mermaid
+        // 流式结束后最终渲染 + mermaid
+        bubbleEl.innerHTML = parseMarkdown(fullText);
         renderMermaidInElement(bubbleEl);
 
-        // 如果没收到 done 事件也完成
         if (bubbleEl.querySelector('.streaming-cursor')) {
             finalizeStreamingMessage(aiMsgEl);
         }
@@ -157,7 +174,8 @@ async function send() {
         const cursor = bubbleEl.querySelector('.streaming-cursor');
         if (cursor) cursor.remove();
         const meta = aiMsgEl.querySelector('.msg-meta');
-        if (meta) meta.textContent = '错误 · ' + new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        if (meta) meta.textContent = '错误 · ' +
+            new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     } finally {
         sendBtn.disabled = false;
         sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span> 发送';
@@ -228,7 +246,6 @@ function addMessage(role, text, latency, ragHits) {
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
 
-    // 渲染 mermaid
     if (role === 'ai') {
         renderMermaidInElement(div.querySelector('.bubble'));
     }
@@ -279,32 +296,36 @@ input.addEventListener('keydown', (e) => {
 const chatCard = document.getElementById('chatCard');
 const wrapper = document.querySelector('.chat-card-wrapper');
 
-wrapper.addEventListener('mousemove', (e) => {
-    const rect = wrapper.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-
-    chatCard.style.transform = `
-        rotateY(${x * 6}deg)
-        rotateX(${-y * 6}deg)
-    `;
-});
-
-wrapper.addEventListener('mouseleave', () => {
-    chatCard.style.transform = '';
-});
+if (wrapper && chatCard) {
+    wrapper.addEventListener('mousemove', (e) => {
+        const rect = wrapper.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width - 0.5;
+        const y = (e.clientY - rect.top) / rect.height - 0.5;
+        chatCard.style.transform = `rotateY(${x * 6}deg) rotateX(${-y * 6}deg)`;
+    });
+    wrapper.addEventListener('mouseleave', () => {
+        chatCard.style.transform = '';
+    });
+}
 
 // ===== GSAP 入场动画 =====
 document.addEventListener('DOMContentLoaded', () => {
-    gsap.set('.gsap-reveal', { y: 30 });
-
-    gsap.to('.gsap-reveal', {
-        duration: 0.8,
-        opacity: 1,
-        visibility: 'visible',
-        y: 0,
-        stagger: 0.15,
-        ease: 'power3.out',
-        delay: 0.1
-    });
+    if (typeof gsap !== 'undefined') {
+        gsap.set('.gsap-reveal', { y: 30 });
+        gsap.to('.gsap-reveal', {
+            duration: 0.8,
+            opacity: 1,
+            visibility: 'visible',
+            y: 0,
+            stagger: 0.15,
+            ease: 'power3.out',
+            delay: 0.1
+        });
+    } else {
+        // 没有 gsap 时直接显示
+        document.querySelectorAll('.gsap-reveal').forEach(el => {
+            el.style.opacity = '1';
+            el.style.visibility = 'visible';
+        });
+    }
 });

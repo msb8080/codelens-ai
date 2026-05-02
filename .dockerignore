@@ -1,0 +1,7 @@
+.git
+.idea
+*.iml
+.DS_Store
+.env
+docs
+README.md

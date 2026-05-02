@@ -11,4 +11,10 @@ public class ChatRequest {
     private String question;
     /** 会话ID（多轮对话） */
     private String sessionId;
+    /** 智能体ID */
+    private String agentId;
+    /** 系统提示词（前端智能体传入） */
+    private String systemPrompt;
+    /** 模型名称 */
+    private String model;
 }

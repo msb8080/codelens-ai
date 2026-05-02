@@ -91,6 +91,6 @@ public class ChatController {
      */
     @GetMapping("/health")
     public String health() {
-        return "CodeLens AI is running";
+        return "OmniAgent is running";
     }
 }

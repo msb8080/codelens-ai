@@ -43,9 +43,9 @@ public class ChatService {
         void onError(Throwable error);
     }
 
-    /** 系统Prompt */
-    private static final String SYSTEM_PROMPT = """
-            你是一个专业的代码分析助手 CodeLens AI。
+    /** 默认系统 Prompt（兼容旧版） */
+    private static final String DEFAULT_SYSTEM_PROMPT = """
+            你是一个专业的代码分析助手。
             你的能力：
             1. 分析代码结构、设计模式、潜在问题
             2. 基于提供的代码片段回答技术问题
@@ -63,6 +63,8 @@ public class ChatService {
     public ChatResponse chat(ChatRequest request) {
         long startTime = System.currentTimeMillis();
         String sessionId = request.getSessionId() != null ? request.getSessionId() : "default";
+        String systemPrompt = request.getSystemPrompt() != null && !request.getSystemPrompt().isEmpty()
+                ? request.getSystemPrompt() : DEFAULT_SYSTEM_PROMPT;
 
         try {
             // 1. RAG检索相关代码片段
@@ -70,7 +72,7 @@ public class ChatService {
             String context = ragService.buildContext(codeSnippets);
 
             // 2. 组装Prompt
-            List<Message> messages = getOrCreateHistory(sessionId);
+            List<Message> messages = getOrCreateHistory(sessionId, systemPrompt);
             if (context != null && !context.isEmpty()) {
                 messages.add(new UserMessage(context + "\n\n用户问题：" + request.getQuestion()));
             } else {
@@ -115,6 +117,8 @@ public class ChatService {
     public void chatStream(ChatRequest request, StreamCallback callback) {
         long startTime = System.currentTimeMillis();
         String sessionId = request.getSessionId() != null ? request.getSessionId() : "default";
+        String systemPrompt = request.getSystemPrompt() != null && !request.getSystemPrompt().isEmpty()
+                ? request.getSystemPrompt() : DEFAULT_SYSTEM_PROMPT;
 
         try {
             // 1. RAG检索相关代码片段
@@ -122,7 +126,7 @@ public class ChatService {
             String context = ragService.buildContext(codeSnippets);
 
             // 2. 组装Prompt
-            List<Message> messages = getOrCreateHistory(sessionId);
+            List<Message> messages = getOrCreateHistory(sessionId, systemPrompt);
             if (context != null && !context.isEmpty()) {
                 messages.add(new UserMessage(context + "\n\n用户问题：" + request.getQuestion()));
             } else {
@@ -195,14 +199,19 @@ public class ChatService {
     }
 
     /**
-     * 获取或创建会话历史
+     * 获取或创建会话历史（支持动态 systemPrompt）
      */
-    private List<Message> getOrCreateHistory(String sessionId) {
+    private List<Message> getOrCreateHistory(String sessionId, String systemPrompt) {
         return conversationHistory.computeIfAbsent(sessionId, k -> {
             List<Message> history = new ArrayList<>();
-            history.add(new SystemMessage(SYSTEM_PROMPT));
+            history.add(new SystemMessage(systemPrompt));
             return history;
         });
+    }
+
+    /** @deprecated 使用带 systemPrompt 的版本 */
+    private List<Message> getOrCreateHistory(String sessionId) {
+        return getOrCreateHistory(sessionId, DEFAULT_SYSTEM_PROMPT);
     }
 
     /**

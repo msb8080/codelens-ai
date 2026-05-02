@@ -118,7 +118,7 @@ body,html{background-color:var(--bg-dark);color:#e0e0e0;overflow-x:hidden;scroll
 /* 输入区域 */
 .input-area{padding:0.75rem 1.25rem;border-top:1px solid rgba(126,90,220,0.1);display:flex;gap:0.75rem;align-items:center;flex-shrink:0}
 .input-wrapper{flex:1;position:relative}
-.input-wrapper textarea{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(126,90,220,0.15);border-radius:14px;color:#e0e0e0;padding:calc((46px - 1.5em) / 2) 1rem calc((46px - 1.5em) / 2) 130px;font-size:0.9rem;font-family:'Plus Jakarta Sans',sans-serif;resize:none;outline:none;transition:all 0.3s;line-height:1.5;min-height:46px;max-height:120px}
+.input-wrapper textarea{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(126,90,220,0.15);border-radius:14px;color:#e0e0e0;padding:13px 1rem 0 130px;font-size:0.9rem;font-family:'Plus Jakarta Sans',sans-serif;resize:none;outline:none;transition:border-color 0.3s,box-shadow 0.3s;line-height:1.5;min-height:46px;max-height:120px}
 .input-wrapper textarea::placeholder{color:rgba(255,255,255,0.3)}
 .input-wrapper textarea:focus{border-color:var(--brand);background:rgba(255,255,255,0.08);box-shadow:0 0 0 3px rgba(126,90,220,0.1)}
 

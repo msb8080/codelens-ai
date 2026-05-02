@@ -152,16 +152,19 @@ async function send() {
                 if (line.startsWith('event:')) {
                     currentEvent = line.slice(6).trim();
                 } else if (line.startsWith('data:')) {
-                    const data = line.slice(5);
+                    const raw = line.slice(5);
                     if (currentEvent === 'token') {
-                        fullText += data;
+                        // JSON 解码 token（后端已编码，保留换行符）
+                        let token;
+                        try { token = JSON.parse(raw); } catch { token = raw; }
+                        fullText += token;
                         // 流式中: 只转义+换行，不做 markdown 解析
                         bubbleEl.innerHTML = renderStreaming(fullText) +
                             '<span class="streaming-cursor"></span>';
                         messages.scrollTop = messages.scrollHeight;
                     } else if (currentEvent === 'done') {
                         try {
-                            const result = JSON.parse(data);
+                            const result = JSON.parse(raw);
                             finalizeStreamingMessage(aiMsgEl, result.latencyMs, result.ragHits);
                             updateStats(result.latencyMs, result.ragHits);
                         } catch (e) {

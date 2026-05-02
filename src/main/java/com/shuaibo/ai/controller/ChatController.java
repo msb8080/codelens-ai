@@ -1,5 +1,6 @@
 package com.shuaibo.ai.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shuaibo.ai.model.ChatRequest;
 import com.shuaibo.ai.model.ChatResponse;
 import com.shuaibo.ai.service.ChatService;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * AI对话接口
@@ -21,6 +23,7 @@ import java.io.IOException;
 public class ChatController {
 
     private final ChatService chatService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * AI对话（非流式）
@@ -41,9 +44,12 @@ public class ChatController {
             @Override
             public void onToken(String token) {
                 try {
+                    // JSON 编码 token，保留其中的 \n 等特殊字符
+                    // SSE 用 \n 分隔行，token 内的 \n 会导致数据丢失
+                    String jsonToken = objectMapper.writeValueAsString(token);
                     emitter.send(SseEmitter.event()
                             .name("token")
-                            .data(token));
+                            .data(jsonToken));
                 } catch (IOException e) {
                     emitter.completeWithError(e);
                 }

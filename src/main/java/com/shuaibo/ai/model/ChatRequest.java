@@ -17,4 +17,8 @@ public class ChatRequest {
     private String systemPrompt;
     /** 模型名称 */
     private String model;
+    /** API Base URL（可选，覆盖默认） */
+    private String baseUrl;
+    /** API Key（可选，覆盖默认） */
+    private String apiKey;
 }

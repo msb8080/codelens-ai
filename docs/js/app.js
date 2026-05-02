@@ -313,7 +313,14 @@ async function send() {
 
     const binding = config.agentBindings[activeAgentId] || {};
     const model = config.models.find(m => m.id === (binding.modelId || activeModelId));
-    const body = { question, agentId: activeAgentId, systemPrompt: agent.systemPrompt, model: model ? (model.model || model.name) : undefined };
+    const body = {
+        question,
+        agentId: activeAgentId,
+        systemPrompt: agent.systemPrompt,
+        model: model ? (model.model || model.name) : undefined,
+        baseUrl: model?.baseUrl || undefined,
+        apiKey: model?.apiKey || undefined,
+    };
 
     try {
         const res = await fetch(`${getApiBase()}/api/chat/stream`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body), signal:controller.signal });

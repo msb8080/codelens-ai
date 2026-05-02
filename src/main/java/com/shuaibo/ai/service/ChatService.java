@@ -36,11 +36,11 @@ public class ChatService {
     private final ModelFactory modelFactory;
 
     /** 获取实际使用的模型 */
-    private ChatModel resolveModel(String modelName) {
-        if (modelName != null && !modelName.isBlank()) {
-            ChatModel dynamic = modelFactory.getModel(modelName);
+    private ChatModel resolveModel(String modelName, String baseUrl, String apiKey) {
+        if (modelName != null || baseUrl != null || apiKey != null) {
+            ChatModel dynamic = modelFactory.getModel(modelName, baseUrl, apiKey);
             if (dynamic != null) {
-                log.debug("Using dynamic model: {}", modelName);
+                log.debug("Using dynamic model: {} @ {}", modelName, baseUrl);
                 return dynamic;
             }
         }
@@ -102,7 +102,7 @@ public class ChatService {
             Prompt prompt = new Prompt(messages);
 
             // 3. 调用LLM（支持动态模型）
-            ChatModel model = resolveModel(request.getModel());
+            ChatModel model = resolveModel(request.getModel(), request.getBaseUrl(), request.getApiKey());
             org.springframework.ai.chat.model.ChatResponse aiResponse = model.call(prompt);
             AssistantMessage assistantMessage = aiResponse.getResult().getOutput();
             String answer = assistantMessage.getContent();
@@ -157,7 +157,7 @@ public class ChatService {
             Prompt prompt = new Prompt(messages);
 
             // 3. 流式调用LLM（支持动态模型）
-            ChatModel model = resolveModel(request.getModel());
+            ChatModel model = resolveModel(request.getModel(), request.getBaseUrl(), request.getApiKey());
             StringBuilder fullAnswer = new StringBuilder();
             final org.springframework.ai.chat.model.ChatResponse[] lastResponse = {null};
 

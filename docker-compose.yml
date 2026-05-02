@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # Qdrant 向量数据库
+  qdrant:
+    image: qdrant/qdrant:v1.10.0
+    container_name: codelens-qdrant
+    ports:
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC API
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  # Spring Boot 应用
+  codelens-ai:
+    build: .
+    container_name: codelens-app
+    ports:
+      - "8090:8090"
+    environment:
+      - AI_BASE_URL=${AI_BASE_URL:-https://token-plan-cn.xiaomimimo.com/v1}
+      - AI_API_KEY=${AI_API_KEY:-tp-cu7gtm52l168jgi222a8wcdbel5z3y02pcqib5cq7jh92082}
+      - AI_MODEL=${AI_MODEL:-Mistral-Small-3.1-24B-Instruct-2503}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6334
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:

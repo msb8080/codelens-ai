@@ -418,6 +418,84 @@ function autoResize() {
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
 }
 input.addEventListener('input', autoResize);
+
+// ===== Slash 命令系统 =====
+const SLASH_COMMANDS = [
+    { cmd: '/explain',  icon: '📖', desc: '解释代码逻辑' },
+    { cmd: '/optimize', icon: '⚡', desc: '优化代码性能' },
+    { cmd: '/bug',      icon: '🐛', desc: '查找潜在问题' },
+    { cmd: '/test',     icon: '🧪', desc: '生成测试用例' },
+    { cmd: '/refactor', icon: '🔧', desc: '重构建议' },
+    { cmd: '/doc',      icon: '📝', desc: '生成文档注释' },
+];
+
+function handleSlashInput() {
+    const val = input.value;
+    const panel = $('slashPanel');
+    if (val.startsWith('/')) {
+        const query = val.slice(1).toLowerCase();
+        const filtered = SLASH_COMMANDS.filter(c => c.cmd.includes(query) || c.desc.includes(query));
+        if (filtered.length) {
+            panel.innerHTML = filtered.map(c => `
+                <div class="slash-item" onclick="applySlash('${c.cmd}')">
+                    <span class="slash-cmd">${c.icon} ${c.cmd}</span>
+                    <span class="slash-desc">${c.desc}</span>
+                </div>
+            `).join('');
+            panel.style.display = 'block';
+        } else {
+            panel.style.display = 'none';
+        }
+    } else {
+        panel.style.display = 'none';
+    }
+}
+
+function applySlash(cmd) {
+    input.value = '';
+    input.focus();
+    $('slashPanel').style.display = 'none';
+    // 将 slash 命令作为消息发送
+    const agent = config.agents.find(a => a.id === activeAgentId);
+    const agentName = agent ? agent.name : '通用助手';
+    const prompts = {
+        '/explain':  '请解释以下代码的逻辑和工作原理：\n```\n\n```',
+        '/optimize': '请分析以下代码的性能瓶颈并给出优化建议：\n```\n\n```',
+        '/bug':      '请检查以下代码是否存在潜在的 bug 或安全问题：\n```\n\n```',
+        '/test':     '请为以下代码生成单元测试用例：\n```\n\n```',
+        '/refactor': '请对以下代码给出重构建议：\n```\n\n```',
+        '/doc':      '请为以下代码生成文档注释：\n```\n\n```',
+    };
+    input.value = prompts[cmd] || `${cmd} `;
+    autoResize();
+}
+
+input.addEventListener('input', handleSlashInput);
+
+// 点击外部关闭 slash 面板
+document.addEventListener('click', e => {
+    const panel = $('slashPanel');
+    if (panel.style.display !== 'none' && !panel.contains(e.target) && e.target !== input) {
+        panel.style.display = 'none';
+    }
+});
+
+// ===== 模式切换 =====
+let currentMode = 'chat';
+
+function switchMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    // 更新 placeholder
+    const placeholders = {
+        chat: '输入问题，或使用 / 调用能力...',
+        rag: '输入问题，将检索相关文档后回答...',
+        agent: '描述你想完成的任务，Agent 将自动规划执行...',
+    };
+    input.placeholder = placeholders[mode] || placeholders.chat;
+}
 input.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); if(currentAbort) currentAbort(); else send(); } });
 function updateStats(latency) { if(latency) $('latencyDisplay').textContent=`延迟: ${latency}ms`; }
 

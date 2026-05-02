@@ -57,6 +57,7 @@ function defaultConfig() {
         apiUrl: 'https://codelens-ai-ghfh.onrender.com',
         models: [
             { id:'siliconflow', name:'Qwen2.5-7B', provider:'硅基流动', baseUrl:'https://api.siliconflow.cn', apiKey:'sk-xvrssvsidkkjmxikhzgwwesvfayihaztdjhogblfdybphcha', model:'Qwen/Qwen2.5-7B-Instruct', active:true },
+            { id:'zhipu', name:'GLM-4-Flash', provider:'智谱 AI', baseUrl:'https://open.bigmodel.cn/api/paas/v4', apiKey:'30ad8a0404b84bcbb882caa40f1c9c2c.EJfizp87w0Kpv8dq', model:'glm-4-flash', active:true },
         ],
         agents: JSON.parse(JSON.stringify(BUILTIN_AGENTS)),
         agentBindings: {},
@@ -413,7 +414,14 @@ function addMessage(role, text) {
     $('msgCount').textContent = `消息: ${messages.querySelectorAll('.message').length}`;
 }
 
-function autoResize() { input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,120)+'px'; }
+function autoResize() {
+    input.style.height = 'auto';
+    const h = Math.min(input.scrollHeight, 120);
+    input.style.height = h + 'px';
+    // 单行时 line-height = 高度实现垂直居中；多行时恢复正常行高
+    const isSingleLine = h <= 46;
+    input.style.lineHeight = isSingleLine ? '46px' : '1.5';
+}
 input.addEventListener('input', autoResize);
 input.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); if(currentAbort) currentAbort(); else send(); } });
 function updateStats(latency) { if(latency) $('latencyDisplay').textContent=`延迟: ${latency}ms`; }

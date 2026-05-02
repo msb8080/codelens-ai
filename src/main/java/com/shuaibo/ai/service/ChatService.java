@@ -13,6 +13,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Service;
+import reactor.core.Disposable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,13 @@ public class ChatService {
 
     /** 多轮对话上下文缓存 */
     private final Map<String, List<Message>> conversationHistory = new ConcurrentHashMap<>();
+
+    /** 流式回调接口 */
+    public interface StreamCallback {
+        void onToken(String token);
+        void onComplete(ChatResponse response);
+        void onError(Throwable error);
+    }
 
     /** 系统Prompt */
     private static final String SYSTEM_PROMPT = """
@@ -98,6 +106,74 @@ public class ChatService {
         } catch (Exception e) {
             log.error("Chat error: sessionId={}", sessionId, e);
             throw new RuntimeException("对话处理失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 流式对话 - 逐token输出
+     */
+    public void chatStream(ChatRequest request, StreamCallback callback) {
+        long startTime = System.currentTimeMillis();
+        String sessionId = request.getSessionId() != null ? request.getSessionId() : "default";
+
+        try {
+            // 1. RAG检索相关代码片段
+            List<String> codeSnippets = ragService.search(request.getQuestion(), 3);
+            String context = ragService.buildContext(codeSnippets);
+
+            // 2. 组装Prompt
+            List<Message> messages = getOrCreateHistory(sessionId);
+            if (context != null && !context.isEmpty()) {
+                messages.add(new UserMessage(context + "\n\n用户问题：" + request.getQuestion()));
+            } else {
+                messages.add(new UserMessage(request.getQuestion()));
+            }
+
+            Prompt prompt = new Prompt(messages);
+
+            // 3. 流式调用LLM
+            StringBuilder fullAnswer = new StringBuilder();
+
+            Disposable disposable = chatModel.stream(prompt)
+                    .subscribe(
+                            chatResponse -> {
+                                String content = chatResponse.getResult().getOutput().getContent();
+                                if (content != null) {
+                                    fullAnswer.append(content);
+                                    callback.onToken(content);
+                                }
+                            },
+                            error -> {
+                                log.error("Streaming error: sessionId={}", sessionId, error);
+                                callback.onError(error);
+                            },
+                            () -> {
+                                // 4. 保存对话历史
+                                AssistantMessage assistantMsg = new AssistantMessage(fullAnswer.toString());
+                                messages.add(assistantMsg);
+
+                                // 5. 计算耗时
+                                long latencyMs = System.currentTimeMillis() - startTime;
+
+                                // 6. 记录指标
+                                meterRegistry.counter("codelens.chat.total").increment();
+                                meterRegistry.timer("codelens.chat.latency").record(java.time.Duration.ofMillis(latencyMs));
+
+                                log.info("Stream chat completed: sessionId={}, ragHits={}, latency={}ms",
+                                        sessionId, codeSnippets.size(), latencyMs);
+
+                                // 7. 返回完成回调
+                                callback.onComplete(ChatResponse.builder()
+                                        .answer(fullAnswer.toString())
+                                        .ragHits(codeSnippets.size())
+                                        .latencyMs(latencyMs)
+                                        .build());
+                            }
+                    );
+
+        } catch (Exception e) {
+            log.error("Stream chat error: sessionId={}", sessionId, e);
+            callback.onError(e);
         }
     }
 

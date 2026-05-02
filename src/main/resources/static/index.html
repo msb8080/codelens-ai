@@ -596,6 +596,45 @@
             }
         }
 
+        /* 流式光标 */
+        .streaming-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.1em;
+            background: var(--brand-light);
+            margin-left: 2px;
+            vertical-align: text-bottom;
+            animation: cursorBlink 0.8s step-end infinite;
+        }
+
+        @keyframes cursorBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* 流式生成中的气泡微光效果 */
+        .message.streaming .bubble {
+            position: relative;
+        }
+
+        .message.streaming .bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--brand-light), transparent);
+            animation: shimmer 1.5s infinite;
+            border-radius: 0 0 16px 16px;
+        }
+
+        @keyframes shimmer {
+            0% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.3; }
+        }
+
         /* ----- 输入区域 ----- */
         .input-area {
             padding: 1rem 1.5rem;
@@ -913,7 +952,7 @@
                 .replace(/\n/g, '<br>');
         }
 
-        // ===== 发送消息 =====
+        // ===== 发送消息（流式版） =====
         async function send() {
             const question = input.value.trim();
             if (!question) return;
@@ -924,33 +963,113 @@
             sendBtn.disabled = true;
             sendBtn.innerHTML = '<span class="material-symbols-outlined">pending</span> 思考中...';
 
-            // 添加打字指示器
-            const typingId = addTypingIndicator();
+            // 创建 AI 消息容器（空的，等待流式填充）
+            const aiMsgEl = createStreamingMessage();
+            const bubbleEl = aiMsgEl.querySelector('.bubble');
+            let fullText = '';
 
             try {
-                const res = await fetch(`${API_BASE}/api/chat`, {
+                const res = await fetch(`${API_BASE}/api/chat/stream`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ question })
                 });
-                const data = await res.json();
 
-                // 移除打字指示器
-                removeTypingIndicator(typingId);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-                if (data.error) {
-                    addMessage('ai', '抱歉，处理出错了：' + data.message);
-                } else {
-                    addMessage('ai', data.answer, data.latencyMs, data.ragHits);
-                    updateStats(data.latencyMs, data.ragHits);
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+
+                    // 解析 SSE 格式: "event:token\ndata:xxx\n\n" 或 "event:done\ndata:{...}\n\n"
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // 保留不完整的最后一行
+
+                    let currentEvent = '';
+                    for (const line of lines) {
+                        if (line.startsWith('event:')) {
+                            currentEvent = line.slice(6).trim();
+                        } else if (line.startsWith('data:')) {
+                            const data = line.slice(5);
+                            if (currentEvent === 'token') {
+                                // 逐 token 追加显示
+                                fullText += data;
+                                bubbleEl.innerHTML = parseMarkdown(fullText) + '<span class="streaming-cursor"></span>';
+                                messages.scrollTop = messages.scrollHeight;
+                            } else if (currentEvent === 'done') {
+                                // 流式结束，解析最终结果
+                                try {
+                                    const result = JSON.parse(data);
+                                    finalizeStreamingMessage(aiMsgEl, result.latencyMs, result.ragHits);
+                                    updateStats(result.latencyMs, result.ragHits);
+                                } catch (e) {
+                                    finalizeStreamingMessage(aiMsgEl);
+                                }
+                            }
+                        }
+                    }
                 }
+
+                // 如果没收到 done 事件也完成
+                if (bubbleEl.querySelector('.streaming-cursor')) {
+                    finalizeStreamingMessage(aiMsgEl);
+                }
+
             } catch (e) {
-                removeTypingIndicator(typingId);
-                addMessage('ai', '⚠️ 连接失败，请确认后端服务已启动。\n\n错误：' + e.message);
+                // 出错时移除流式光标，显示错误
+                bubbleEl.innerHTML = parseMarkdown(fullText || '') +
+                    '<br><br>⚠️ 连接失败：' + e.message;
+                const cursor = bubbleEl.querySelector('.streaming-cursor');
+                if (cursor) cursor.remove();
+                const meta = aiMsgEl.querySelector('.msg-meta');
+                if (meta) meta.textContent = '错误 · ' + new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span> 发送';
             }
+        }
+
+        // ===== 创建流式消息容器 =====
+        function createStreamingMessage() {
+            const div = document.createElement('div');
+            div.className = 'message ai streaming';
+            div.innerHTML = `
+                <div class="msg-avatar">🤖</div>
+                <div class="msg-body">
+                    <div class="bubble"><span class="streaming-cursor"></span></div>
+                    <div class="msg-meta">正在生成...</div>
+                </div>`;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+            return div;
+        }
+
+        // ===== 完成流式消息 =====
+        function finalizeStreamingMessage(msgEl, latency, ragHits) {
+            msgEl.classList.remove('streaming');
+            // 移除光标
+            const cursor = msgEl.querySelector('.streaming-cursor');
+            if (cursor) cursor.remove();
+
+            // 更新 meta
+            const meta = msgEl.querySelector('.msg-meta');
+            if (meta) {
+                const parts = [];
+                if (latency) parts.push(`${latency}ms`);
+                if (ragHits !== undefined) parts.push(`RAG: ${ragHits}条`);
+                parts.push(new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }));
+                meta.textContent = parts.join(' · ');
+            }
+
+            // 更新消息计数
+            const count = messages.querySelectorAll('.message').length;
+            document.getElementById('msgCount').textContent = `消息: ${count}`;
         }
 
         // ===== 添加消息 =====

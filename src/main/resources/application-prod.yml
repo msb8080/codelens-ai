@@ -1,0 +1,38 @@
+# 生产环境配置
+server:
+  port: ${PORT:8090}
+
+spring:
+  application:
+    name: codelens-ai
+
+  ai:
+    openai:
+      base-url: ${AI_BASE_URL}
+      api-key: ${AI_API_KEY}
+      chat:
+        options:
+          model: ${AI_MODEL:mimo-v2.5-pro}
+          temperature: 0.7
+          max-tokens: 2048
+
+qdrant:
+  host: ${QDRANT_HOST}
+  port: ${QDRANT_PORT:6334}
+  collection: ${QDRANT_COLLECTION:codelens-code}
+  vector-size: 1536
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  metrics:
+    export:
+      prometheus:
+        enabled: false
+
+logging:
+  level:
+    com.shuaibo.ai: INFO
+    org.springframework.ai: WARN

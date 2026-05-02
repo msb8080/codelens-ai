@@ -171,9 +171,9 @@ public class ChatService {
                                         var usage = lastResponse[0].getMetadata().getUsage();
                                         if (usage != null) {
                                             tokenUsage = ChatResponse.TokenUsage.builder()
-                                                    .promptTokens((int) usage.getPromptTokens())
-                                                    .completionTokens((int) usage.getGenerationTokens())
-                                                    .totalTokens((int) usage.getTotalTokens())
+                                                    .promptTokens(usage.getPromptTokens() != null ? usage.getPromptTokens().intValue() : 0)
+                                                    .completionTokens(usage.getGenerationTokens() != null ? usage.getGenerationTokens().intValue() : 0)
+                                                    .totalTokens(usage.getTotalTokens() != null ? usage.getTotalTokens().intValue() : 0)
                                                     .build();
                                         }
                                     }

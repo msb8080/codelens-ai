@@ -170,7 +170,7 @@ async function send() {
                     } else if (currentEvent === 'done') {
                         try {
                             const result = JSON.parse(raw);
-                            finalizeStreamingMessage(aiMsgEl, result.latencyMs, result.ragHits);
+                            finalizeStreamingMessage(aiMsgEl, result.latencyMs, result.ragHits, result.tokenUsage);
                             updateStats(result.latencyMs, result.ragHits);
                         } catch { finalizeStreamingMessage(aiMsgEl); }
                     }
@@ -209,36 +209,47 @@ function finalizeStopped(msgEl, fullText) {
         '<br><em style="color:var(--brand-light);font-size:0.85em;">⏸ 已中断</em>';
     renderMermaidInElement(bubbleEl);
     finalizeStreamingMessage(msgEl);
-    addActionButtons(msgEl, fullText);
+    addContinueButton(msgEl);
     return fullText;
 }
 
-// ===== 操作按钮 (复制 / 继续) =====
-function addActionButtons(msgEl, text) {
-    // 移除已有按钮
-    const old = msgEl.querySelector('.msg-actions');
-    if (old) old.remove();
-
-    const actions = document.createElement('div');
-    actions.className = 'msg-actions';
-    actions.innerHTML = `
-        <button class="action-btn" onclick="copyText(this, '${escapeAttr(text)}')" title="复制">
-            <span class="material-symbols-outlined">content_copy</span>
-        </button>
-        <button class="action-btn" onclick="continueGenerate(this)" title="继续生成">
-            <span class="material-symbols-outlined">play_arrow</span>
-        </button>
-    `;
-    msgEl.querySelector('.msg-body').appendChild(actions);
+// ===== 操作按钮 =====
+function addCopyButton(msgEl) {
+    if (msgEl.querySelector('.msg-actions .copy-btn')) return;
+    let actions = msgEl.querySelector('.msg-actions');
+    if (!actions) {
+        actions = document.createElement('div');
+        actions.className = 'msg-actions';
+        msgEl.querySelector('.msg-body').appendChild(actions);
+    }
+    const btn = document.createElement('button');
+    btn.className = 'action-btn copy-btn';
+    btn.title = '复制';
+    btn.innerHTML = '<span class="material-symbols-outlined">content_copy</span>';
+    btn.onclick = () => copyBubble(btn, msgEl);
+    actions.appendChild(btn);
 }
 
-function escapeAttr(str) {
-    return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
+function addContinueButton(msgEl) {
+    const actions = msgEl.querySelector('.msg-actions') || (() => {
+        const d = document.createElement('div');
+        d.className = 'msg-actions';
+        msgEl.querySelector('.msg-body').appendChild(d);
+        return d;
+    })();
+    if (actions.querySelector('.continue-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'action-btn continue-btn';
+    btn.title = '继续生成';
+    btn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
+    btn.onclick = () => continueGenerate(msgEl);
+    actions.appendChild(btn);
 }
 
-function copyText(btn, text) {
-    const decoded = text.replace(/\\n/g, '\n').replace(/\\'/g, "'").replace(/\\\\/g, '\\');
-    navigator.clipboard.writeText(decoded).then(() => {
+function copyBubble(btn, msgEl) {
+    const bubble = msgEl.querySelector('.bubble');
+    const text = bubble ? bubble.textContent : '';
+    navigator.clipboard.writeText(text).then(() => {
         btn.innerHTML = '<span class="material-symbols-outlined">check</span>';
         setTimeout(() => {
             btn.innerHTML = '<span class="material-symbols-outlined">content_copy</span>';
@@ -246,27 +257,13 @@ function copyText(btn, text) {
     });
 }
 
-function continueGenerate(btn) {
-    const msgEl = btn.closest('.message');
-    const bubbleEl = msgEl.querySelector('.bubble');
-    // 移除中断提示和按钮
-    const stopped = bubbleEl.querySelector('em');
-    if (stopped) stopped.remove();
-    const actions = msgEl.querySelector('.msg-actions');
-    if (actions) actions.remove();
-    // 获取当前文本
-    const rawText = bubbleEl.textContent || '';
-    // 重新发送最后一条用户消息
+function continueGenerate(msgEl) {
     const userMsgs = messages.querySelectorAll('.message.user');
-    if (userMsgs.length > 0) {
-        const lastUserMsg = userMsgs[userMsgs.length - 1];
-        const question = lastUserMsg.querySelector('.bubble').textContent;
-        // 移除当前不完整的 AI 消息
-        msgEl.remove();
-        // 重新发送
-        input.value = question;
-        send();
-    }
+    if (userMsgs.length === 0) return;
+    const question = userMsgs[userMsgs.length - 1].querySelector('.bubble').textContent;
+    msgEl.remove();
+    input.value = question;
+    send();
 }
 
 // ===== 发送/停止按钮切换 =====
@@ -298,12 +295,13 @@ function createStreamingMessage() {
             </div>
         </div>`;
     messages.appendChild(div);
+    addCopyButton(div);
     scrollToBottom();
     return div;
 }
 
 // ===== 完成流式消息 =====
-function finalizeStreamingMessage(msgEl, latency, ragHits) {
+function finalizeStreamingMessage(msgEl, latency, ragHits, tokenUsage) {
     msgEl.classList.remove('streaming');
     const cursor = msgEl.querySelector('.streaming-cursor');
     if (cursor) cursor.remove();
@@ -312,15 +310,16 @@ function finalizeStreamingMessage(msgEl, latency, ragHits) {
     if (meta) {
         const parts = [];
         if (latency) parts.push(`${latency}ms`);
-        if (ragHits !== undefined) parts.push(`RAG: ${ragHits}条`);
+        if (ragHits !== undefined && ragHits > 0) parts.push(`RAG: ${ragHits}条`);
+        if (tokenUsage && tokenUsage.totalTokens) {
+            parts.push(`↑${tokenUsage.promptTokens} ↓${tokenUsage.completionTokens}`);
+        }
         parts.push(new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }));
         meta.textContent = parts.join(' · ');
     }
 
-    // 添加操作按钮
-    const bubbleEl = msgEl.querySelector('.bubble');
-    const text = bubbleEl ? bubbleEl.textContent : '';
-    if (text) addActionButtons(msgEl, text);
+    // 确保复制按钮存在
+    addCopyButton(msgEl);
 
     const count = messages.querySelectorAll('.message').length;
     document.getElementById('msgCount').textContent = `消息: ${count}`;
@@ -356,7 +355,7 @@ function addMessage(role, text, latency, ragHits) {
 
     if (role === 'ai') {
         renderMermaidInElement(div.querySelector('.bubble'));
-        addActionButtons(div, text);
+        addCopyButton(div);
     }
 
     scrollToBottom();
@@ -390,21 +389,7 @@ function updateStats(latency, ragHits) {
     if (ragHits !== undefined) document.getElementById('ragDisplay').textContent = `RAG: ${ragHits} 命中`;
 }
 
-// ===== 3D 卡片鼠标追踪 =====
-const chatCard = document.getElementById('chatCard');
-const wrapper = document.querySelector('.chat-card-wrapper');
-
-if (wrapper && chatCard) {
-    wrapper.addEventListener('mousemove', (e) => {
-        const rect = wrapper.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width - 0.5;
-        const y = (e.clientY - rect.top) / rect.height - 0.5;
-        chatCard.style.transform = `rotateY(${x * 6}deg) rotateX(${-y * 6}deg)`;
-    });
-    wrapper.addEventListener('mouseleave', () => {
-        chatCard.style.transform = '';
-    });
-}
+// ===== 3D 卡片鼠标追踪（已禁用） =====
 
 // ===== GSAP 入场动画 =====
 document.addEventListener('DOMContentLoaded', () => {

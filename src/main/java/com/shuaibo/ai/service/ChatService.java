@@ -133,10 +133,12 @@ public class ChatService {
 
             // 3. 流式调用LLM
             StringBuilder fullAnswer = new StringBuilder();
+            final org.springframework.ai.chat.model.ChatResponse[] lastResponse = {null};
 
             Disposable disposable = chatModel.stream(prompt)
                     .subscribe(
                             chatResponse -> {
+                                lastResponse[0] = chatResponse;
                                 String content = chatResponse.getResult().getOutput().getContent();
                                 if (content != null) {
                                     fullAnswer.append(content);
@@ -162,11 +164,26 @@ public class ChatService {
                                 log.info("Stream chat completed: sessionId={}, ragHits={}, latency={}ms",
                                         sessionId, codeSnippets.size(), latencyMs);
 
-                                // 7. 返回完成回调
+                                // 7. 构建响应（含 token 用量）
+                                ChatResponse.TokenUsage tokenUsage = null;
+                                try {
+                                    if (lastResponse[0] != null && lastResponse[0].getMetadata() != null) {
+                                        var usage = lastResponse[0].getMetadata().getUsage();
+                                        if (usage != null) {
+                                            tokenUsage = ChatResponse.TokenUsage.builder()
+                                                    .promptTokens(usage.getPromptTokens())
+                                                    .completionTokens(usage.getCompletionTokens())
+                                                    .totalTokens(usage.getTotalTokens())
+                                                    .build();
+                                        }
+                                    }
+                                } catch (Exception ignored) {}
+
                                 callback.onComplete(ChatResponse.builder()
                                         .answer(fullAnswer.toString())
                                         .ragHits(codeSnippets.size())
                                         .latencyMs(latencyMs)
+                                        .tokenUsage(tokenUsage)
                                         .build());
                             }
                     );

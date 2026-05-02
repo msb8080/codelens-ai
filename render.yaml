@@ -1,15 +1,4 @@
 services:
-  # Qdrant 向量数据库
-  - type: pserv
-    name: codelens-qdrant
-    env: docker
-    dockerfilePath: ./Dockerfile.qdrant
-    plan: free
-    disk:
-      name: qdrant-data
-      mountPath: /qdrant/storage
-      sizeGB: 1
-
   # Spring Boot 应用
   - type: web
     name: codelens-ai
@@ -23,11 +12,5 @@ services:
         sync: false
       - key: AI_MODEL
         value: mimo-v2.5-pro
-      - key: QDRANT_HOST
-        fromService:
-          name: codelens-qdrant
-          property: host
-      - key: QDRANT_PORT
-        value: 6334
       - key: SPRING_PROFILES_ACTIVE
         value: prod

@@ -40,6 +40,15 @@ function parseMarkdown(text) {
         .replace(/\n/g, '<br>');
 }
 
+// 流式渲染: 只做转义+换行，避免不完整 markdown 产生错误 HTML
+function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderStreaming(text) {
+    return escapeHtml(text).replace(/\n/g, '<br>');
+}
+
 // ===== Mermaid 渲染 =====
 let useMermaid = false;
 let mermaidCounter = 0;
@@ -146,7 +155,8 @@ async function send() {
                     const data = line.slice(5);
                     if (currentEvent === 'token') {
                         fullText += data;
-                        bubbleEl.innerHTML = parseMarkdown(fullText) +
+                        // 流式中: 只转义+换行，不做 markdown 解析
+                        bubbleEl.innerHTML = renderStreaming(fullText) +
                             '<span class="streaming-cursor"></span>';
                         messages.scrollTop = messages.scrollHeight;
                     } else if (currentEvent === 'done') {
@@ -171,8 +181,9 @@ async function send() {
         }
 
     } catch (e) {
-        bubbleEl.innerHTML = parseMarkdown(fullText || '') +
-            '<br><br>⚠️ 连接失败：' + e.message;
+        // 出错: 先用简单渲染显示已有内容
+        bubbleEl.innerHTML = renderStreaming(fullText || '') +
+            '<br><br>⚠️ 连接失败：' + escapeHtml(e.message);
         const cursor = bubbleEl.querySelector('.streaming-cursor');
         if (cursor) cursor.remove();
         const meta = aiMsgEl.querySelector('.msg-meta');

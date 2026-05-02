@@ -528,18 +528,20 @@ function renderMcpConfig() {
     $('tab-mcp').innerHTML = `<div class="config-section"><div class="config-section-header"><h4>MCP 服务器</h4><button class="add-btn" onclick="addMcp()"><span class="material-symbols-outlined">add</span> 添加</button></div><p class="config-hint">连接 MCP 服务器扩展工具能力（文件系统、数据库、搜索等）</p><div id="_mcpList"></div></div>`;
     const list = $('_mcpList');
     if (!config.mcps.length) { list.innerHTML='<div class="config-empty"><span class="material-symbols-outlined">hub</span>还没有 MCP 服务器</div>'; return; }
-    list.innerHTML = config.mcps.map((m,i) => `
-        <div class="config-item">
+    list.innerHTML = config.mcps.map((m,i) => {
+        const isBuiltin = BUILTIN_MCPS.some(b => b.id === m.id);
+        return `<div class="config-item">
             <div class="config-item-header">
-                <div class="config-item-title"><span class="material-symbols-outlined">hub</span> ${escapeHtml(m.name)}</div>
+                <div class="config-item-title"><span class="material-symbols-outlined">hub</span> ${escapeHtml(m.name)} ${isBuiltin?'<span class="config-builtin-tag">内置</span>':''}</div>
                 <div class="config-item-actions">
                     <button onclick="copyMcp(${i})" title="复制"><span class="material-symbols-outlined">content_copy</span></button>
                     <button onclick="editMcp(${i})"><span class="material-symbols-outlined">edit</span></button>
-                    <button class="delete-btn" onclick="deleteMcp(${i})"><span class="material-symbols-outlined">delete</span></button>
+                    ${!isBuiltin?`<button class="delete-btn" onclick="deleteMcp(${i})"><span class="material-symbols-outlined">delete</span></button>`:''}
                 </div>
             </div>
             <div class="config-item-meta"><span class="tag">${escapeHtml(m.type||'stdio')}</span> ${m.enabled===false?'<span class="tag" style="background:rgba(239,68,68,0.15);color:#f87171">已禁用</span>':'<span class="tag" style="background:rgba(74,222,128,0.12);color:#4ade80">已启用</span>'}<span style="font-size:0.68rem;color:rgba(255,255,255,0.25);display:block;margin-top:0.3rem;word-break:break-all">${escapeHtml(m.command||m.url||'')}</span></div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 function addMcp() {
     openModal('添加 MCP 服务器', MCP_FIELDS, { type:'stdio', enabled:'true' }, data => {
@@ -572,18 +574,20 @@ function renderSkillConfig() {
     $('tab-skills').innerHTML = `<div class="config-section"><div class="config-section-header"><h4>Skills 技能</h4><button class="add-btn" onclick="addSkill()"><span class="material-symbols-outlined">add</span> 添加</button></div><p class="config-hint">可复用的技能文件，为智能体注入领域知识和操作流程</p><div id="_skillList"></div></div>`;
     const list = $('_skillList');
     if (!config.skills.length) { list.innerHTML='<div class="config-empty"><span class="material-symbols-outlined">extension</span>还没有 Skills</div>'; return; }
-    list.innerHTML = config.skills.map((s,i) => `
-        <div class="config-item">
+    list.innerHTML = config.skills.map((s,i) => {
+        const isBuiltin = BUILTIN_SKILLS.some(b => b.id === s.id);
+        return `<div class="config-item">
             <div class="config-item-header">
-                <div class="config-item-title"><span class="material-symbols-outlined">extension</span> ${escapeHtml(s.name)}</div>
+                <div class="config-item-title"><span class="material-symbols-outlined">extension</span> ${escapeHtml(s.name)} ${isBuiltin?'<span class="config-builtin-tag">内置</span>':''}</div>
                 <div class="config-item-actions">
                     <button onclick="copySkill(${i})" title="复制"><span class="material-symbols-outlined">content_copy</span></button>
                     <button onclick="editSkill(${i})"><span class="material-symbols-outlined">edit</span></button>
-                    <button class="delete-btn" onclick="deleteSkill(${i})"><span class="material-symbols-outlined">delete</span></button>
+                    ${!isBuiltin?`<button class="delete-btn" onclick="deleteSkill(${i})"><span class="material-symbols-outlined">delete</span></button>`:''}
                 </div>
             </div>
             <div class="config-item-meta" style="max-height:60px;overflow:hidden">${escapeHtml((s.content||'').substring(0,150))}${(s.content||'').length>150?'...':''}</div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 function addSkill() { openModal('添加 Skill', SKILL_FIELDS, {}, data => { config.skills.push({ id:'skill_'+Date.now(), ...data }); saveConfig(config); renderSkillConfig(); }); }
 function editSkill(i) { openModal('编辑 Skill', SKILL_FIELDS, config.skills[i], data => { Object.assign(config.skills[i], data); saveConfig(config); renderSkillConfig(); }); }
@@ -599,18 +603,20 @@ function renderRuleConfig() {
     $('tab-rules').innerHTML = `<div class="config-section"><div class="config-section-header"><h4>Rules 规则</h4><button class="add-btn" onclick="addRule()"><span class="material-symbols-outlined">add</span> 添加</button></div><p class="config-hint">全局行为规则，约束输出格式、编码风格和安全策略</p><div id="_ruleList"></div></div>`;
     const list = $('_ruleList');
     if (!config.rules.length) { list.innerHTML='<div class="config-empty"><span class="material-symbols-outlined">policy</span>还没有 Rules</div>'; return; }
-    list.innerHTML = config.rules.map((r,i) => `
-        <div class="config-item">
+    list.innerHTML = config.rules.map((r,i) => {
+        const isBuiltin = BUILTIN_RULES.some(b => b.id === r.id);
+        return `<div class="config-item">
             <div class="config-item-header">
-                <div class="config-item-title"><span class="material-symbols-outlined">policy</span> ${escapeHtml(r.name)}</div>
+                <div class="config-item-title"><span class="material-symbols-outlined">policy</span> ${escapeHtml(r.name)} ${isBuiltin?'<span class="config-builtin-tag">内置</span>':''}</div>
                 <div class="config-item-actions">
                     <button onclick="copyRule(${i})" title="复制"><span class="material-symbols-outlined">content_copy</span></button>
                     <button onclick="editRule(${i})"><span class="material-symbols-outlined">edit</span></button>
-                    <button class="delete-btn" onclick="deleteRule(${i})"><span class="material-symbols-outlined">delete</span></button>
+                    ${!isBuiltin?`<button class="delete-btn" onclick="deleteRule(${i})"><span class="material-symbols-outlined">delete</span></button>`:''}
                 </div>
             </div>
             <div class="config-item-meta">${escapeHtml((r.content||'').substring(0,120))}${(r.content||'').length>120?'...':''}</div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 function addRule() { openModal('添加 Rule', RULE_FIELDS, {}, data => { config.rules.push({ id:'rule_'+Date.now(), ...data }); saveConfig(config); renderRuleConfig(); }); }
 function editRule(i) { openModal('编辑 Rule', RULE_FIELDS, config.rules[i], data => { Object.assign(config.rules[i], data); saveConfig(config); renderRuleConfig(); }); }

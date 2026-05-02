@@ -194,19 +194,19 @@ footer{text-align:center;padding:2rem 0;color:rgba(255,255,255,0.25);font-size:0
  * 配置面板
  * ========================================= */
 .config-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:200;animation:fadeIn 0.2s}
-.config-panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:90%;max-width:700px;max-height:80vh;background:rgba(26,16,48,0.95);backdrop-filter:blur(30px);border:1px solid rgba(126,90,220,0.25);border-radius:20px;z-index:201;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:panelIn 0.3s cubic-bezier(0.23,1,0.32,1)}
-.config-panel-header{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid rgba(126,90,220,0.15)}
+.config-panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:90%;max-width:700px;max-height:80vh;background:rgba(26,16,48,0.95);backdrop-filter:blur(30px);border:1px solid rgba(126,90,220,0.25);border-radius:20px;z-index:201;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:panelIn 0.3s cubic-bezier(0.23,1,0.32,1);overflow:hidden}
+.config-panel-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid rgba(126,90,220,0.15);flex-shrink:0}
 .config-panel-header h3{display:flex;align-items:center;gap:0.5rem;font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:#fff}
 .config-panel-header h3 .material-symbols-outlined{font-size:22px;color:var(--brand-light)}
 .config-close-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(126,90,220,0.15);border-radius:8px;padding:0.4rem;cursor:pointer;color:rgba(255,255,255,0.5);transition:all 0.2s;display:flex}
 .config-close-btn:hover{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171}
 .config-close-btn .material-symbols-outlined{font-size:18px}
-.config-tabs{display:flex;gap:0;padding:0 1rem;border-bottom:1px solid rgba(126,90,220,0.1);overflow-x:auto}
+.config-tabs{display:flex;gap:0;padding:0 0.75rem;border-bottom:1px solid rgba(126,90,220,0.1);overflow-x:auto;flex-shrink:0}
 .config-tab{display:flex;align-items:center;gap:0.4rem;padding:0.75rem 1rem;border:none;background:none;color:rgba(255,255,255,0.4);font-size:0.8rem;font-weight:500;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap}
 .config-tab:hover{color:rgba(255,255,255,0.7)}
 .config-tab.active{color:var(--brand-light);border-bottom-color:var(--brand)}
 .config-tab .material-symbols-outlined{font-size:18px}
-.config-content{flex:1;overflow-y:auto;padding:1.25rem 1.5rem}
+.config-content{flex:1;overflow-y:auto;padding:1rem 1.25rem;min-height:0}
 .config-content::-webkit-scrollbar{width:4px}
 .config-content::-webkit-scrollbar-thumb{background:rgba(126,90,220,0.3);border-radius:2px}
 .config-section{margin-bottom:1.5rem}
@@ -236,7 +236,7 @@ footer{text-align:center;padding:2rem 0;color:rgba(255,255,255,0.25);font-size:0
 .config-row{display:flex;gap:0.5rem;margin-bottom:0.5rem;align-items:center}
 .config-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(126,90,220,0.15);border-radius:8px;padding:0.5rem 0.75rem;color:#e0e0e0;font-size:0.8rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;transition:all 0.2s}
 .config-input:focus{border-color:var(--brand);background:rgba(255,255,255,0.08);box-shadow:0 0 0 2px rgba(126,90,220,0.1)}
-.config-panel-footer{display:flex;gap:0.5rem;padding:1rem 1.5rem;border-top:1px solid rgba(126,90,220,0.15);justify-content:flex-end}
+.config-panel-footer{display:flex;gap:0.5rem;padding:0.75rem 1.5rem;border-top:1px solid rgba(126,90,220,0.15);justify-content:flex-end;flex-shrink:0}
 .export-btn,.import-btn{display:flex;align-items:center;gap:0.3rem;background:rgba(255,255,255,0.06);border:1px solid rgba(126,90,220,0.15);border-radius:8px;padding:0.5rem 1rem;color:rgba(255,255,255,0.6);font-size:0.75rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all 0.2s}
 .export-btn:hover,.import-btn:hover{background:rgba(126,90,220,0.15);color:#fff}
 .export-btn .material-symbols-outlined,.import-btn .material-symbols-outlined{font-size:16px}
@@ -244,6 +244,8 @@ footer{text-align:center;padding:2rem 0;color:rgba(255,255,255,0.25);font-size:0
 .config-empty .material-symbols-outlined{font-size:48px;display:block;margin-bottom:0.75rem;color:rgba(126,90,220,0.2)}
 
 /* Agent 卡片 */
+.config-builtin-tag{font-size:0.55rem;padding:0.1rem 0.4rem;border-radius:4px;background:rgba(96,165,250,0.12);color:var(--info,#60a5fa);font-family:'Space Mono',monospace;margin-left:0.3rem;vertical-align:middle}
+
 .agent-config-card{display:flex;align-items:center;gap:0.75rem}
 .agent-config-emoji{font-size:24px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.06);border-radius:10px;flex-shrink:0}
 .agent-config-info{flex:1}

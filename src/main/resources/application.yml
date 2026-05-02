@@ -5,14 +5,14 @@ spring:
   application:
     name: codelens-ai
 
-  # AI模型配置 (硅基流动 - OpenAI兼容接口)
+  # AI模型配置 (OpenAI 兼容接口)
   ai:
     openai:
-      base-url: ${AI_BASE_URL:https://token-plan-cn.xiaomimimo.com}
-      api-key: ${AI_API_KEY:tp-cu7gtm52l168jgi222a8wcdbel5z3y02pcqib5cq7jh92082}
+      base-url: ${AI_BASE_URL:https://api.siliconflow.cn}
+      api-key: ${AI_API_KEY:sk-xvrssvsidkkjmxikhzgwwesvfayihaztdjhogblfdybphcha}
       chat:
         options:
-          model: ${AI_MODEL:mimo-v2.5-pro}
+          model: ${AI_MODEL:Qwen/Qwen2.5-7B-Instruct}
           temperature: 0.7
           max-tokens: 2048
 

@@ -1,5 +1,6 @@
 package com.shuaibo.ai.service;
 
+import com.shuaibo.ai.config.ModelFactory;
 import com.shuaibo.ai.model.ChatRequest;
 import com.shuaibo.ai.model.ChatResponse;
 import com.shuaibo.ai.service.rag.RagService;
@@ -32,6 +33,19 @@ public class ChatService {
     private final ChatModel chatModel;
     private final RagService ragService;
     private final MeterRegistry meterRegistry;
+    private final ModelFactory modelFactory;
+
+    /** 获取实际使用的模型 */
+    private ChatModel resolveModel(String modelName) {
+        if (modelName != null && !modelName.isBlank()) {
+            ChatModel dynamic = modelFactory.getModel(modelName);
+            if (dynamic != null) {
+                log.debug("Using dynamic model: {}", modelName);
+                return dynamic;
+            }
+        }
+        return chatModel; // 回退到默认
+    }
 
     /** 多轮对话上下文缓存 */
     private final Map<String, List<Message>> conversationHistory = new ConcurrentHashMap<>();
@@ -87,8 +101,9 @@ public class ChatService {
 
             Prompt prompt = new Prompt(messages);
 
-            // 3. 调用LLM
-            org.springframework.ai.chat.model.ChatResponse aiResponse = chatModel.call(prompt);
+            // 3. 调用LLM（支持动态模型）
+            ChatModel model = resolveModel(request.getModel());
+            org.springframework.ai.chat.model.ChatResponse aiResponse = model.call(prompt);
             AssistantMessage assistantMessage = aiResponse.getResult().getOutput();
             String answer = assistantMessage.getContent();
 
@@ -141,11 +156,12 @@ public class ChatService {
 
             Prompt prompt = new Prompt(messages);
 
-            // 3. 流式调用LLM
+            // 3. 流式调用LLM（支持动态模型）
+            ChatModel model = resolveModel(request.getModel());
             StringBuilder fullAnswer = new StringBuilder();
             final org.springframework.ai.chat.model.ChatResponse[] lastResponse = {null};
 
-            Disposable disposable = chatModel.stream(prompt)
+            Disposable disposable = model.stream(prompt)
                     .subscribe(
                             chatResponse -> {
                                 lastResponse[0] = chatResponse;

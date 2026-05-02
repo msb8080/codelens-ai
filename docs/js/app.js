@@ -56,8 +56,7 @@ function defaultConfig() {
     return {
         apiUrl: 'https://codelens-ai-ghfh.onrender.com',
         models: [
-            { id:'siliconflow-free', name:'Qwen2.5-7B (免费)', provider:'硅基流动', baseUrl:'https://api.siliconflow.cn', apiKey:'sk-xvrssvsidkkjmxikhzgwwesvfayihaztdjhogblfdybphcha', model:'Qwen/Qwen2.5-7B-Instruct', active:true },
-            { id:'mimo', name:'mimo-v2.5-pro', provider:'小米 mimo', baseUrl:'https://token-plan-cn.xiaomimimo.com', apiKey:'', model:'mimo-v2.5-pro', active:true },
+            { id:'siliconflow', name:'Qwen2.5-7B', provider:'硅基流动', baseUrl:'https://api.siliconflow.cn', apiKey:'sk-xvrssvsidkkjmxikhzgwwesvfayihaztdjhogblfdybphcha', model:'Qwen/Qwen2.5-7B-Instruct', active:true },
         ],
         agents: JSON.parse(JSON.stringify(BUILTIN_AGENTS)),
         agentBindings: {},
@@ -151,6 +150,8 @@ function openModal(title, fields, data, onSave) {
             input = `<textarea id="mf_${f.key}" placeholder="${escapeHtml(f.placeholder||'')}" rows="${f.rows||5}">${escapeHtml(String(val))}</textarea>`;
         } else if (f.type === 'select') {
             input = `<select id="mf_${f.key}">${(f.options||[]).map(o => `<option value="${escapeHtml(o.value)}" ${o.value===val?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}</select>`;
+        } else if (f.type === 'password') {
+            input = `<input type="password" id="mf_${f.key}" value="" placeholder="${escapeHtml(f.placeholder||'')}" autocomplete="new-password" />`;
         } else {
             input = `<input type="text" id="mf_${f.key}" value="${escapeHtml(String(val))}" placeholder="${escapeHtml(f.placeholder||'')}" />`;
         }
@@ -162,8 +163,11 @@ function openModal(title, fields, data, onSave) {
         let valid = true;
         fields.forEach(f => {
             const el = $('mf_' + f.key);
-            const v = el ? (f.type === 'select' ? el.value : el.value.trim()) : '';
+            if (!el) return;
+            let v = f.type === 'select' ? el.value : el.value.trim();
+            if (f.type === 'password' && !v) v = ''; // 密码字段空表示不修改
             if (f.required && !v) { el.style.borderColor = 'var(--danger)'; valid = false; }
+            else { el.style.borderColor = ''; }
             result[f.key] = v;
         });
         if (!valid) return false;
@@ -458,7 +462,7 @@ function renderModelConfig() {
     const section = $('tab-models').querySelector('.config-section-header');
     if (section) section.outerHTML = `<div class="config-section-header"><h4>模型配置</h4><button class="add-btn" onclick="addModel()"><span class="material-symbols-outlined">add</span> 添加</button></div><p class="config-hint">OpenAI 兼容模型 API（硅基流动免费 / 小米 mimo / Ollama / OpenAI 等）</p>`;
     // 添加 section-header
-    $('tab-models').innerHTML = `<div class="config-section"><div class="config-section-header"><h4>模型配置</h4><button class="add-btn" onclick="addModel()"><span class="material-symbols-outlined">add</span> 添加</button></div><p class="config-hint">OpenAI 兼容模型 API（硅基流动免费 / 小米 mimo / Ollama / OpenAI 等）</p><div id="_modelList"></div></div>`;
+    $('tab-models').innerHTML = `<div class="config-section"><div class="config-section-header"><h4>模型配置</h4><button class="add-btn" onclick="addModel()"><span class="material-symbols-outlined">add</span> 添加</button></div><p class="config-hint">OpenAI 兼容模型 API（硅基流动 / Ollama / OpenAI 等）</p><div id="_modelList"></div></div>`;
     const list = $('_modelList');
     if (!config.models.length) { list.innerHTML='<div class="config-empty"><span class="material-symbols-outlined">smart_toy</span>还没有模型</div>'; return; }
     list.innerHTML = config.models.map((m,i) => `
@@ -468,10 +472,9 @@ function renderModelConfig() {
                 <div class="config-item-actions">
                     <button onclick="copyModel(${i})" title="复制"><span class="material-symbols-outlined">content_copy</span></button>
                     <button onclick="editModel(${i})" title="编辑"><span class="material-symbols-outlined">edit</span></button>
-                    <button class="delete-btn" onclick="deleteModel(${i})" title="删除"><span class="material-symbols-outlined">delete</span></button>
                 </div>
             </div>
-            <div class="config-item-meta"><span class="tag">${escapeHtml(m.provider||'自定义')}</span> <span class="tag">${escapeHtml(m.model||'-')}</span><span style="font-size:0.68rem;color:rgba(255,255,255,0.25);display:block;margin-top:0.3rem;word-break:break-all">${escapeHtml(m.baseUrl||'')}</span></div>
+            <div class="config-item-meta"><span class="tag">${escapeHtml(m.provider||'自定义')}</span> <span class="tag">${escapeHtml(m.model||'-')}</span>${m.apiKey ? '<span class="tag" style="background:rgba(74,222,128,0.12);color:#4ade80">✓ 已配置 Key</span>' : ''}<span style="font-size:0.68rem;color:rgba(255,255,255,0.25);display:block;margin-top:0.3rem;word-break:break-all">${escapeHtml(m.baseUrl||'')}</span></div>
         </div>`).join('');
 }
 
@@ -480,7 +483,7 @@ const MODEL_FIELDS = [
     { key:'model', label:'模型 ID（API 调用名）', type:'text', placeholder:'例如: gpt-4o', required:true },
     { key:'provider', label:'提供商', type:'text', placeholder:'例如: OpenAI' },
     { key:'baseUrl', label:'Base URL（不含 /v1）', type:'text', placeholder:'https://api.openai.com', required:true },
-    { key:'apiKey', label:'API Key（可留空）', type:'text', placeholder:'sk-...' },
+    { key:'apiKey', label:'API Key', type:'password', placeholder:'留空不修改', hint:'输入新 Key 以更新，留空则保留原值' },
 ];
 
 function addModel() {
@@ -491,6 +494,7 @@ function addModel() {
 }
 function editModel(i) {
     openModal('编辑模型', MODEL_FIELDS, config.models[i], data => {
+        if (!data.apiKey) delete data.apiKey; // 留空则保留原值
         Object.assign(config.models[i], data);
         saveConfig(config); renderModelConfig(); renderModelDropdown();
     });
@@ -620,7 +624,6 @@ const AGENT_FIELDS = [
     { key:'brief', label:'一句话简介', type:'text', placeholder:'功能简述' },
     { key:'category', label:'分类', type:'text', placeholder:'通用 / 开发 / 生活 / 投资' },
     { key:'systemPrompt', label:'System Prompt', type:'text', placeholder:'定义这个智能体的角色和行为...', rows:6 },
-    { key:'modelId', label:'绑定模型（留空跟随全局）', type:'select', options:()=>[{value:'',label:'跟随全局'},...config.models.map(m=>({value:m.id,label:m.name}))] },
 ];
 function renderAgentConfig() {
     $('tab-agents').innerHTML = `<div class="config-section"><div class="config-section-header"><h4>智能体管理</h4><button class="add-btn" onclick="addAgent()"><span class="material-symbols-outlined">add</span> 新建</button></div><p class="config-hint">管理智能体。每个可绑定专属模型、MCP、Skills、Rules</p><div id="_agentList"></div></div>`;
@@ -653,32 +656,23 @@ function renderAgentConfig() {
     }).join('');
 }
 function addAgent() {
-    const fields = [...AGENT_FIELDS];
-    openModal('新建智能体', fields, { emoji:'🤖', category:'通用' }, data => {
+    openModal('新建智能体', AGENT_FIELDS, { emoji:'🤖', category:'通用' }, data => {
         config.agents.push({ id:'custom_'+Date.now(), emoji:data.emoji||'🤖', name:data.name, category:data.category||'通用', brief:data.brief||'', systemPrompt:data.systemPrompt||'' });
-        if (data.modelId) { config.agentBindings[config.agents[config.agents.length-1].id] = { modelId: data.modelId }; }
         saveConfig(config); renderAgentConfig();
     });
 }
 function editAgent(i) {
     const a = config.agents[i]; if (!a) return;
-    const fields = [...AGENT_FIELDS];
-    const binding = config.agentBindings[a.id] || {};
-    openModal('编辑智能体', fields, { ...a, modelId: binding.modelId||'' }, data => {
+    openModal('编辑智能体', AGENT_FIELDS, a, data => {
         a.name=data.name; a.brief=data.brief; a.emoji=data.emoji||'🤖'; a.category=data.category; a.systemPrompt=data.systemPrompt;
-        config.agentBindings[a.id] = config.agentBindings[a.id] || {};
-        config.agentBindings[a.id].modelId = data.modelId || undefined;
         saveConfig(config); renderAgentConfig();
         if (activeAgentId===a.id) selectAgent(a.id);
     });
 }
 function copyAgent(i) {
     const a = config.agents[i]; if (!a) return;
-    const binding = config.agentBindings[a.id] || {};
-    openModal('复制智能体', AGENT_FIELDS, { ...a, name:a.name+' (副本)', id:undefined, modelId:binding.modelId||'' }, data => {
-        const newId = 'custom_'+Date.now();
-        config.agents.push({ id:newId, emoji:data.emoji||'🤖', name:data.name, category:data.category||'通用', brief:data.brief||'', systemPrompt:data.systemPrompt||'' });
-        if (data.modelId) config.agentBindings[newId] = { modelId: data.modelId };
+    openModal('复制智能体', AGENT_FIELDS, { ...a, name:a.name+' (副本)', id:undefined }, data => {
+        config.agents.push({ id:'custom_'+Date.now(), emoji:data.emoji||'🤖', name:data.name, category:data.category||'通用', brief:data.brief||'', systemPrompt:data.systemPrompt||'' });
         saveConfig(config); renderAgentConfig();
     });
 }

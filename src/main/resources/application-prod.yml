@@ -17,7 +17,7 @@ spring:
           max-tokens: 2048
 
 qdrant:
-  host: ${QDRANT_HOST}
+  host: ${QDRANT_HOST:localhost}
   port: ${QDRANT_PORT:6334}
   collection: ${QDRANT_COLLECTION:codelens-code}
   vector-size: 1536

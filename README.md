@@ -16,7 +16,7 @@
 | 🤖 **多智能体** | 9 个内置智能体（通用 / 编码 / PRD / 设计 / 测试 / 部署 / 烹饪 / 股票 / 游戏），支持自定义 |
 | 🔀 **多模型切换** | 兼容 OpenAI API 格式 — 硅基流动 / 小米 mimo / Ollama / OpenAI 等，每个智能体可绑定不同模型 |
 | 🌊 **SSE 流式输出** | Server-Sent Events 逐 token 输出，实时显示生成内容 |
-| 🧠 **RAG 检索** | 集成 Qdrant 向量数据库 + Embedding 模型，检索相关代码片段增强回答 |
+| 🧠 **RAG 检索** | 预留向量检索接口，可接入 Qdrant/Milvus 等向量数据库 |
 | 🔌 **MCP 服务器** | 连接 Model Context Protocol 扩展工具能力（文件系统 / Git / 搜索等） |
 | 📦 **Skills 技能** | 可复用的领域知识模板（Code Review 清单 / PRD 模板 / 菜谱格式等） |
 | 📏 **Rules 规则** | 全局行为约束 — 输出格式 / 语言偏好 / 安全策略 |
@@ -46,9 +46,9 @@
 │  │ChatCtrl  │→ │ChatSvc   │→ │ModelFactory│ (动态模型)   │
 │  │(REST/SSE)│  │(多轮对话) │  │(OpenAI兼容)│              │
 │  └──────────┘  └────┬─────┘  └───────────┘              │
-│                     │ RAG 检索                            │
+│                     │ RAG 检索（预留）                       │
 │                ┌────┴─────┐                              │
-│                │RagService│──→ Qdrant (向量数据库)         │
+│                │RagService│──→ [待接入向量数据库]           │
 │                └──────────┘                              │
 │                                                         │
 │  📊 Micrometer + Prometheus (可观测性)                    │
@@ -124,18 +124,15 @@ git clone https://github.com/msb8080/codelens-ai.git
 cd codelens-ai
 
 # 2. 配置环境变量
-export AI_BASE_URL=https://api.siliconflow.cn
+export AI_BASE_URL=https://token-plan-cn.xiaomimimo.com
 export AI_API_KEY=你的API密钥
-export AI_MODEL=Qwen/Qwen2.5-7B-Instruct
+export AI_MODEL=mimo-v2.5-pro
 
-# 3. 启动 Qdrant（可选，RAG 功能需要）
-docker run -d -p 6333:6333 -p 6334:6334 qdrant/qdrant:v1.10.0
-
-# 4. 构建并启动
+# 3. 构建并启动
 mvn clean package -DskipTests
 java -jar target/codelens-ai-1.0.0.jar
 
-# 5. 访问 http://localhost:8090
+# 4. 访问 http://localhost:8090
 ```
 
 ### 方式二：Docker Compose（一键部署）
@@ -145,7 +142,7 @@ java -jar target/codelens-ai-1.0.0.jar
 cp .env.example .env
 # 编辑 .env 填入真实 API Key
 
-# 启动（含 Qdrant + 应用）
+# 启动应用
 docker-compose up -d
 
 # 访问 http://localhost:8090
@@ -242,9 +239,8 @@ codelens-ai/
 ├── src/main/java/com/shuaibo/ai/
 │   ├── CodeLensAiApplication.java # Spring Boot 启动类
 │   ├── config/
-│   │   ├── CorsConfig.java        # CORS 跨域配置
-│   │   ├── ModelFactory.java      # 动态模型工厂 (多模型切换)
-│   │   └── QdrantConfig.java      # Qdrant 向量数据库配置
+│   │   ├── CorsConfig.java        # CORS 跨域配置（环境变量）
+│   │   └── ModelFactory.java      # 动态模型工厂 (多模型切换)
 │   ├── controller/
 │   │   └── ChatController.java    # REST + SSE 接口
 │   ├── model/
@@ -254,9 +250,8 @@ codelens-ai/
 │       ├── ChatService.java       # 核心对话逻辑 (多轮/流式/RAG)
 │       └── rag/RagService.java    # RAG 向量检索服务
 ├── src/main/resources/
-│   ├── application.yml            # 应用配置
-│   └── static/                    # 内嵌静态资源 (备用)
-├── docker-compose.yml             # Docker Compose (Qdrant + App)
+│   └── application.yml            # 应用配置
+├── docker-compose.yml             # Docker Compose (App)
 ├── Dockerfile                     # 多阶段构建
 ├── pom.xml                        # Maven 依赖
 ├── render.yaml                    # Render 部署配置
@@ -272,7 +267,7 @@ codelens-ai/
 | **后端框架** | Spring Boot 3.3.4 + Spring AI 1.0.0-M3 |
 | **AI 接口** | OpenAI 兼容 API（动态模型工厂，支持运行时切换） |
 | **代码解析** | Tree-sitter（AST 解析） |
-| **向量数据库** | Qdrant（gRPC Java Client 1.10.0） |
+| **向量数据库** | 预留接口，可接入 Qdrant / Milvus |
 | **可观测性** | Micrometer + Prometheus |
 | **构建工具** | Maven |
 | **容器化** | Docker 多阶段构建 + Docker Compose |
@@ -285,12 +280,9 @@ codelens-ai/
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `AI_BASE_URL` | `https://api.siliconflow.cn` | 模型 API 地址（不含 /v1） |
+| `AI_BASE_URL` | `https://token-plan-cn.xiaomimimo.com` | 模型 API 地址（不含 /v1） |
 | `AI_API_KEY` | — | 模型 API 密钥 |
-| `AI_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | 默认模型名称 |
-| `QDRANT_HOST` | `localhost` | Qdrant 主机 |
-| `QDRANT_PORT` | `6334` | Qdrant gRPC 端口 |
-| `QDRANT_COLLECTION` | `codelens-code` | Qdrant 集合名 |
+| `AI_MODEL` | `mimo-v2.5-pro` | 默认模型名称 |
 
 ---
 

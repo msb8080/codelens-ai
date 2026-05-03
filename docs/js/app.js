@@ -342,7 +342,7 @@ async function send() {
                         textNode.textContent = fullText;
                         scrollToBottom();
                     } else if (currentEvent === 'done') {
-                        try { const r = JSON.parse(raw); finalizeStreamingMessage(aiMsgEl, r.latencyMs, r.tokenUsage); updateStats(r.latencyMs); }
+                        try { const r = JSON.parse(raw); finalizeStreamingMessage(aiMsgEl, r.latencyMs, r.tokenUsage); updateStats(r.latencyMs, r.tokenUsage); }
                         catch { finalizeStreamingMessage(aiMsgEl); }
                     }
                 }
@@ -461,6 +461,36 @@ function autoResize() {
 }
 input.addEventListener('input', autoResize);
 
+// ===== 拖拽代码文件 =====
+input.addEventListener('dragover', e => { e.preventDefault(); input.style.borderColor = 'var(--brand)'; });
+input.addEventListener('dragleave', () => { input.style.borderColor = ''; });
+input.addEventListener('drop', e => {
+    e.preventDefault(); input.style.borderColor = '';
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        const code = reader.result;
+        const ext = file.name.split('.').pop();
+        input.value = `请分析以下代码（来自 ${file.name}）：\n\`\`\`${ext}\n${code}\n\`\`\``;
+        autoResize();
+    };
+    reader.readAsText(file);
+});
+
+// ===== 粘贴代码检测 =====
+input.addEventListener('paste', e => {
+    const text = e.clipboardData?.getData('text');
+    if (!text) return;
+    // 检测是否像代码（包含 { } ; function class import 等特征）
+    const codePatterns = /[{};]|function\s|class\s|import\s|const\s|let\s|var\s|def\s|return\s|=>\s*{|public\s|private\s|package\s/;
+    if (text.includes('\n') && codePatterns.test(text)) {
+        e.preventDefault();
+        input.value = input.value + '```\n' + text + '\n```';
+        autoResize();
+    }
+});
+
 // ===== Slash 命令系统 =====
 const SLASH_COMMANDS = [
     { cmd: '/explain',  icon: '📖', desc: '解释代码逻辑' },
@@ -539,7 +569,23 @@ function switchMode(mode) {
     input.placeholder = placeholders[mode] || placeholders.chat;
 }
 input.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); if(currentAbort) currentAbort(); else send(); } });
-function updateStats(latency) { if(latency) $('latencyDisplay').textContent=`延迟: ${latency}ms`; }
+function updateStats(latency, tokenUsage) {
+    if (latency) $('latencyDisplay').textContent = `延迟: ${latency}ms`;
+    if (tokenUsage?.totalTokens) {
+        const cost = estimateCost(tokenUsage.promptTokens, tokenUsage.completionTokens);
+        $('tokenDisplay').textContent = `Tokens: ${formatNum(tokenUsage.promptTokens)}↓${formatNum(tokenUsage.completionTokens)}${cost ? ' · $'+cost : ''}`;
+    }
+}
+function formatNum(n) { return n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n); }
+function estimateCost(prompt, completion) {
+    // 硅基流动 Qwen2.5-7B 免费，其他模型粗略估算
+    const model = activeModelId ? config.models.find(m=>m.id===activeModelId) : null;
+    if (!model || model.provider?.includes('硅基流动') || model.provider?.includes('SiliconFlow')) return null;
+    // 通用估算: $0.001/1k prompt + $0.002/1k completion
+    const p = (prompt / 1000) * 0.001;
+    const c = (completion / 1000) * 0.002;
+    return (p + c).toFixed(4);
+}
 
 // =========================================
 // 配置面板
@@ -602,6 +648,7 @@ function renderModelConfig() {
                 <div class="config-item-actions">
                     <button onclick="copyModel(${i})" title="复制"><span class="material-symbols-outlined">content_copy</span></button>
                     <button onclick="editModel(${i})" title="编辑"><span class="material-symbols-outlined">edit</span></button>
+                    <button class="delete-btn" onclick="deleteModel(${i})" title="删除"><span class="material-symbols-outlined">delete</span></button>
                 </div>
             </div>
             <div class="config-item-meta"><span class="tag">${escapeHtml(m.provider||'自定义')}</span> <span class="tag">${escapeHtml(m.model||'-')}</span>${m.apiKey ? '<span class="tag" style="background:rgba(74,222,128,0.12);color:#4ade80">✓ 已配置 Key</span>' : ''}<span style="font-size:0.68rem;color:rgba(255,255,255,0.25);display:block;margin-top:0.3rem;word-break:break-all">${escapeHtml(m.baseUrl||'')}</span></div>

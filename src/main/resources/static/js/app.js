@@ -446,34 +446,32 @@ async function send() {
         if (e.name !== 'AbortError') {
             const bubbleEl = aiMsgEl.querySelector('.bubble');
             let errorMessage = e.message;
+            let errorCode = '';
             
-            // 尝试解析后端返回的 JSON 错误
-            try {
-                if (e.message.includes('HTTP 500') || e.message.includes('HTTP 400')) {
-                    // 如果是 HTTP 错误，尝试获取响应内容
-                    const response = await fetch(`${getApiBase()}/api/chat/stream`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(body)
-                    });
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        errorMessage = errorData.message || errorMessage;
-                    }
-                }
-            } catch (parseError) {
-                // 忽略解析错误，使用原始错误信息
+            // 解析错误信息
+            if (e.message.includes('HTTP 500')) {
+                errorMessage = '服务器内部错误，请检查 API Key 和模型配置';
+                errorCode = 'API_KEY_INVALID';
+            } else if (e.message.includes('HTTP 404')) {
+                errorMessage = 'API 地址错误或模型不存在';
+                errorCode = 'MODEL_NOT_FOUND';
+            } else if (e.message.includes('HTTP 401')) {
+                errorMessage = 'API Key 无效';
+                errorCode = 'API_KEY_INVALID';
+            } else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+                errorMessage = '网络连接失败，请检查 API 地址';
+                errorCode = 'CONNECTION_ERROR';
             }
             
             // 显示友好的错误信息
             const errorTips = {
                 'API_KEY_INVALID': '💡 请在配置面板检查 API Key 是否正确',
-                'MODEL_NOT_FOUND': '💡 请检查模型 ID 是否正确',
+                'MODEL_NOT_FOUND': '💡 请检查模型 ID 和 API 地址是否正确',
                 'RATE_LIMITED': '💡 请求过于频繁，请稍后重试',
                 'TIMEOUT': '💡 请求超时，请检查网络连接',
                 'CONNECTION_ERROR': '💡 连接失败，请检查 API 地址是否正确'
             };
-            const tip = errorTips[errorMessage] || '';
+            const tip = errorTips[errorCode] || '';
             
             bubbleEl.innerHTML = parseMarkdown(fullText||'') + 
                 `<br><br><div style="color:#f87171;">⚠️ ${escapeHtml(errorMessage)}</div>` +

@@ -445,7 +445,40 @@ async function send() {
     } catch (e) {
         if (e.name !== 'AbortError') {
             const bubbleEl = aiMsgEl.querySelector('.bubble');
-            bubbleEl.innerHTML = parseMarkdown(fullText||'') + '<br><br>⚠️ ' + escapeHtml(e.message);
+            let errorMessage = e.message;
+            
+            // 尝试解析后端返回的 JSON 错误
+            try {
+                if (e.message.includes('HTTP 500') || e.message.includes('HTTP 400')) {
+                    // 如果是 HTTP 错误，尝试获取响应内容
+                    const response = await fetch(`${getApiBase()}/api/chat/stream`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(body)
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    }
+                }
+            } catch (parseError) {
+                // 忽略解析错误，使用原始错误信息
+            }
+            
+            // 显示友好的错误信息
+            const errorTips = {
+                'API_KEY_INVALID': '💡 请在配置面板检查 API Key 是否正确',
+                'MODEL_NOT_FOUND': '💡 请检查模型 ID 是否正确',
+                'RATE_LIMITED': '💡 请求过于频繁，请稍后重试',
+                'TIMEOUT': '💡 请求超时，请检查网络连接',
+                'CONNECTION_ERROR': '💡 连接失败，请检查 API 地址是否正确'
+            };
+            const tip = errorTips[errorMessage] || '';
+            
+            bubbleEl.innerHTML = parseMarkdown(fullText||'') + 
+                `<br><br><div style="color:#f87171;">⚠️ ${escapeHtml(errorMessage)}</div>` +
+                (tip ? `<div style="color:#a894df;font-size:0.85em;margin-top:0.5rem;">${tip}</div>` : '');
+            
             // 错误状态
             aiMsgEl.classList.remove('streaming');
             const cur = aiMsgEl.querySelector('.streaming-cursor'); if (cur) cur.remove();

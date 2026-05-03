@@ -108,6 +108,8 @@ body,html{background-color:var(--bg-dark);color:#e0e0e0;overflow-x:hidden;scroll
 @keyframes subtleGlow{0%,100%{box-shadow:0 0 0 rgba(126,90,220,0)}50%{box-shadow:0 0 12px rgba(126,90,220,0.15)}}
 /* 流式文本层 */
 .stream-text{white-space:pre-wrap;word-break:break-word;font-size:0.88rem;color:rgba(255,255,255,0.85)}
+/* 生成状态 */
+.meta-status.generating{color:var(--brand-light)}
 .generating-dots{display:inline-flex;gap:3px;margin-left:4px;vertical-align:middle}
 .generating-dots i{width:4px;height:4px;background:var(--brand-light);border-radius:50%;animation:dotPulse 1.2s infinite}
 .generating-dots i:nth-child(2){animation-delay:0.2s}

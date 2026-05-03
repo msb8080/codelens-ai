@@ -352,13 +352,18 @@ async function send() {
         const bubbleEl = aiMsgEl.querySelector('.bubble');
         bubbleEl.innerHTML = parseMarkdown(fullText);
         renderMermaidInElement(bubbleEl);
-        if (bubbleEl.querySelector('.streaming-cursor')) finalizeStreamingMessage(aiMsgEl);
+        // 如果 done 事件没收到（流结束兜底），也 finalize
+        if (aiMsgEl.classList.contains('streaming')) finalizeStreamingMessage(aiMsgEl);
     } catch (e) {
         if (e.name !== 'AbortError') {
             const bubbleEl = aiMsgEl.querySelector('.bubble');
             bubbleEl.innerHTML = parseMarkdown(fullText||'') + '<br><br>⚠️ ' + escapeHtml(e.message);
-            const c = bubbleEl.querySelector('.streaming-cursor'); if (c) c.remove();
-            finalizeStreamingMessage(aiMsgEl);
+            // 错误状态
+            aiMsgEl.classList.remove('streaming');
+            const cur = aiMsgEl.querySelector('.streaming-cursor'); if (cur) cur.remove();
+            const meta = aiMsgEl.querySelector('.msg-meta');
+            if (meta) meta.textContent = '⚠️ 错误 · ' + new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+            addMessageActions(aiMsgEl);
         }
     } finally { setSending(false); currentAbort = null; streamingMsgEl = null; input.focus(); }
 }
@@ -366,7 +371,15 @@ async function send() {
 function finalizeStopped(msgEl, fullText) {
     const b = msgEl.querySelector('.bubble');
     b.innerHTML = parseMarkdown(fullText) + '<br><em style="color:var(--brand-light);font-size:0.85em;">⏸ 已中断</em>';
-    renderMermaidInElement(b); finalizeStreamingMessage(msgEl); addContinueButton(msgEl);
+    renderMermaidInElement(b);
+    // 设置中断状态
+    const meta = msgEl.querySelector('.msg-meta');
+    if (meta) meta.textContent = '⏸ 已中断 · ' + new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+    msgEl.classList.remove('streaming');
+    const c = msgEl.querySelector('.streaming-cursor'); if (c) c.remove();
+    addMessageActions(msgEl);
+    addContinueButton(msgEl);
+    $('msgCount').textContent = `消息: ${messages.querySelectorAll('.message').length}`;
     return fullText;
 }
 function addContinueButton(msgEl) {
@@ -385,14 +398,21 @@ function setSending(sending) {
 function createStreamingMessage() {
     const agent = config.agents.find(a=>a.id===activeAgentId);
     const div = document.createElement('div'); div.className='message ai streaming';
-    div.innerHTML=`<div class="msg-avatar">${agent?agent.emoji:'🧠'}</div><div class="msg-body"><div class="bubble"><span class="stream-text"></span><span class="streaming-cursor"></span></div><div class="msg-meta"><span class="generating-text">正在生成</span><span class="generating-dots"><i></i><i></i><i></i></span></div></div>`;
+    div.innerHTML=`<div class="msg-avatar">${agent?agent.emoji:'🧠'}</div><div class="msg-body"><div class="bubble"><span class="stream-text"></span><span class="streaming-cursor"></span></div><div class="msg-meta"><span class="meta-status generating">正在生成</span><span class="generating-dots"><i></i><i></i><i></i></span></div></div>`;
     messages.appendChild(div); scrollToBottom(); return div;
 }
 function finalizeStreamingMessage(msgEl, latency, tokenUsage) {
     msgEl.classList.remove('streaming');
     const c = msgEl.querySelector('.streaming-cursor'); if (c) c.remove();
+    // 更新 meta：正在生成 → 已完成 + 耗时
     const meta = msgEl.querySelector('.msg-meta');
-    if (meta) { const p=[]; if(latency) p.push(`${latency}ms`); if(tokenUsage?.totalTokens) p.push(`↑${tokenUsage.promptTokens} ↓${tokenUsage.completionTokens}`); p.push(new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})); meta.textContent=p.join(' · '); }
+    if (meta) {
+        const p = ['✅ 已完成'];
+        if (latency) p.push(`${latency}ms`);
+        if (tokenUsage?.totalTokens) p.push(`↑${tokenUsage.promptTokens} ↓${tokenUsage.completionTokens}`);
+        p.push(new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}));
+        meta.textContent = p.join(' · ');
+    }
     addMessageActions(msgEl);
     $('msgCount').textContent = `消息: ${messages.querySelectorAll('.message').length}`;
 }

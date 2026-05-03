@@ -7,9 +7,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * 动态模型工厂 — 根据请求参数创建 ChatModel
@@ -52,7 +53,7 @@ public class ModelFactory {
         }
 
         String resolvedModel = isBlank(modelName) ? defaultModel : modelName;
-        String resolvedUrl = isBlank(baseUrl) ? defaultBaseUrl : baseUrl;
+        String resolvedUrl = normalizeBaseUrl(isBlank(baseUrl) ? defaultBaseUrl : baseUrl);
         String resolvedKey = isBlank(apiKey) ? defaultApiKey : apiKey;
 
         // 如果和默认配置完全一致，也用默认 bean
@@ -96,6 +97,58 @@ public class ModelFactory {
 
     private String normalize(String value) {
         return value == null ? "" : value;
+    }
+
+    /**
+     * Spring AI 的 OpenAiApi 会基于 baseUrl 自行拼接 /v1。
+     * 这里统一去掉用户误填的 /v1 后缀，避免出现 /v1/v1/chat/completions。
+     */
+    private String normalizeBaseUrl(String baseUrl) {
+        if (isBlank(baseUrl)) {
+            return baseUrl;
+        }
+
+        String trimmed = baseUrl.trim();
+        while (trimmed.endsWith("/")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+
+        try {
+            URI uri = new URI(trimmed);
+            String path = uri.getPath();
+            if (path == null || path.isBlank() || "/".equals(path)) {
+                return trimmed;
+            }
+
+            String normalizedPath = path;
+            if (normalizedPath.endsWith("/v1")) {
+                normalizedPath = normalizedPath.substring(0, normalizedPath.length() - 3);
+            } else if (normalizedPath.contains("/v1/")) {
+                normalizedPath = normalizedPath.substring(0, normalizedPath.indexOf("/v1"));
+            }
+
+            URI normalized = new URI(
+                    uri.getScheme(),
+                    uri.getAuthority(),
+                    normalizedPath.isEmpty() ? null : normalizedPath,
+                    uri.getQuery(),
+                    uri.getFragment()
+            );
+            String result = normalized.toString();
+            while (result.endsWith("/")) {
+                result = result.substring(0, result.length() - 1);
+            }
+            return result;
+        } catch (URISyntaxException e) {
+            String result = trimmed;
+            if (result.endsWith("/v1")) {
+                result = result.substring(0, result.length() - 3);
+            }
+            if (result.endsWith("/")) {
+                result = result.substring(0, result.length() - 1);
+            }
+            return result;
+        }
     }
 
     private record CacheEntry(OpenAiChatModel model, long createdAt) {

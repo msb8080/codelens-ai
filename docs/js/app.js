@@ -465,9 +465,11 @@ async function send() {
             const lines = buffer.split('\n'); buffer = lines.pop();
             let currentEvent = '';
             for (const line of lines) {
-                if (line.startsWith('event:')) currentEvent = line.slice(6).trim();
-                else if (line.startsWith('data:')) {
-                    const raw = line.slice(5);
+                if (line.startsWith('event:')) {
+                    currentEvent = line.slice(6).trim();
+                } else if (line.startsWith('data:')) {
+                    const raw = line.slice(5).trim();
+                    if (!raw) continue;
                     if (currentEvent === 'token') {
                         let token; try { token = JSON.parse(raw); } catch { token = raw; }
                         fullText += token;
@@ -475,12 +477,21 @@ async function send() {
                         textNode.textContent = fullText;
                         scrollToBottom();
                     } else if (currentEvent === 'done') {
-                        try { const r = tryParseJson(raw); finalizeStreamingMessage(aiMsgEl, r.latencyMs, r.tokenUsage); updateStats(r.latencyMs, r.tokenUsage); }
-                        catch { finalizeStreamingMessage(aiMsgEl); }
+                        try {
+                            const r = tryParseJson(raw);
+                            if (r && typeof r === 'object') finalizeStreamingMessage(aiMsgEl, r.latencyMs, r.tokenUsage);
+                            else finalizeStreamingMessage(aiMsgEl);
+                            updateStats(r?.latencyMs, r?.tokenUsage);
+                        } catch { finalizeStreamingMessage(aiMsgEl); }
                     } else if (currentEvent === 'error') {
                         const err = tryParseJson(raw);
-                        throw new Error(err?.message || raw || '请求失败');
+                        const msg = (err && typeof err === 'object' ? err.message : null) || (typeof raw === 'string' ? raw : null) || '请求失败';
+                        throw new Error(msg);
                     }
+                    // 处理完一条 data 后重置 event，防止下一条无 event 前缀的 data 被复用
+                    currentEvent = '';
+                } else if (line.trim() === '') {
+                    currentEvent = '';
                 }
             }
         }
@@ -818,7 +829,7 @@ const MODEL_FIELDS = [
     { key:'name', label:'显示名称', type:'text', placeholder:'例如: GPT-4o', required:true },
     { key:'model', label:'模型 ID（API 调用名）', type:'text', placeholder:'例如: gpt-4o', required:true },
     { key:'provider', label:'提供商', type:'text', placeholder:'例如: OpenAI' },
-    { key:'baseUrl', label:'Base URL（不含 /v1）', type:'text', placeholder:'https://api.openai.com', required:true },
+    { key:'baseUrl', label:'Base URL（可填根地址，/v1 会自动处理）', type:'text', placeholder:'https://api.openai.com', required:true },
     { key:'apiKey', label:'API Key', type:'password', placeholder:'留空不修改', hint:'输入新 Key 以更新，留空则保留原值' },
 ];
 
@@ -1079,7 +1090,7 @@ function showFirstTimeSetup() {
         { key:'modelName', label:'模型显示名称', type:'text', placeholder:'例如: Qwen2.5-7B', required:true },
         { key:'modelId', label:'模型 ID（API 调用名）', type:'text', placeholder:'例如: Qwen/Qwen2.5-7B-Instruct', required:true },
         { key:'provider', label:'提供商', type:'text', placeholder:'例如: 硅基流动' },
-        { key:'baseUrl', label:'模型 Base URL（不含 /v1）', type:'text', placeholder:'https://api.siliconflow.cn', required:true },
+        { key:'baseUrl', label:'模型 Base URL（可填根地址，/v1 会自动处理）', type:'text', placeholder:'https://api.siliconflow.cn', required:true },
         { key:'apiKey', label:'API Key', type:'password', placeholder:'输入你的 API Key', required:true },
     ], { provider:'自定义', baseUrl:'https://api.siliconflow.cn' }, data => {
         config.apiUrl = data.apiUrl;

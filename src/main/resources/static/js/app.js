@@ -56,7 +56,16 @@ const STORAGE_KEY = 'omniagent-config-v2';
 function defaultConfig() {
     return {
         apiUrl: '',
-        models: [],
+        models: [{
+            id: 'builtin-free',
+            name: '默认免费模型',
+            model: 'Qwen/Qwen2.5-7B-Instruct',
+            provider: '系统默认',
+            baseUrl: 'https://api.siliconflow.cn',
+            apiKey: '',
+            requiresApiKey: false,
+            builtin: true,
+        }],
         agents: JSON.parse(JSON.stringify(BUILTIN_AGENTS)),
         agentBindings: {},
         mcps: JSON.parse(JSON.stringify(BUILTIN_MCPS)),
@@ -72,6 +81,9 @@ function loadConfig() {
         const cfg = JSON.parse(raw);
         const def = defaultConfig();
         for (const k of Object.keys(def)) { if (!(k in cfg)) cfg[k] = def[k]; }
+        if (!cfg.models.some(m => m.id === 'builtin-free')) {
+            cfg.models.unshift({ ...def.models[0] });
+        }
         // 确保内置 agent 存在
         for (const ba of BUILTIN_AGENTS) {
             const exist = cfg.agents.find(a => a.id === ba.id);
@@ -410,7 +422,19 @@ async function send() {
 
     try {
         const res = await fetch(`${getApiBase()}/api/chat/stream`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body), signal:controller.signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+            let errorMessage = `HTTP ${res.status}`;
+            let errorCode = '';
+            try {
+                const err = await res.json();
+                if (err?.message) errorMessage = err.message;
+                if (err?.error) errorCode = err.error;
+            } catch {}
+            const httpError = new Error(errorMessage);
+            httpError.status = res.status;
+            httpError.code = errorCode;
+            throw httpError;
+        }
         const reader = res.body.getReader(), decoder = new TextDecoder();
         let buffer = '';
         while (true) {
@@ -432,6 +456,9 @@ async function send() {
                     } else if (currentEvent === 'done') {
                         try { const r = JSON.parse(raw); finalizeStreamingMessage(aiMsgEl, r.latencyMs, r.tokenUsage); updateStats(r.latencyMs, r.tokenUsage); }
                         catch { finalizeStreamingMessage(aiMsgEl); }
+                    } else if (currentEvent === 'error') {
+                        const err = JSON.parse(raw);
+                        throw new Error(err?.message || raw || '请求失败');
                     }
                 }
             }
@@ -445,31 +472,15 @@ async function send() {
     } catch (e) {
         if (e.name !== 'AbortError') {
             const bubbleEl = aiMsgEl.querySelector('.bubble');
-            let errorMessage = e.message;
-            let errorCode = '';
-            
-            // 解析错误信息
-            if (e.message.includes('HTTP 500')) {
-                errorMessage = '服务器内部错误，请检查 API Key 和模型配置';
-                errorCode = 'API_KEY_INVALID';
-            } else if (e.message.includes('HTTP 404')) {
-                errorMessage = 'API 地址错误或模型不存在';
-                errorCode = 'MODEL_NOT_FOUND';
-            } else if (e.message.includes('HTTP 401')) {
-                errorMessage = 'API Key 无效';
-                errorCode = 'API_KEY_INVALID';
-            } else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
-                errorMessage = '网络连接失败，请检查 API 地址';
-                errorCode = 'CONNECTION_ERROR';
-            }
-            
-            // 显示友好的错误信息
+            const errorCode = e.code || '';
+            let errorMessage = e.message || '请求失败';
             const errorTips = {
                 'API_KEY_INVALID': '💡 请在配置面板检查 API Key 是否正确',
                 'MODEL_NOT_FOUND': '💡 请检查模型 ID 和 API 地址是否正确',
                 'RATE_LIMITED': '💡 请求过于频繁，请稍后重试',
                 'TIMEOUT': '💡 请求超时，请检查网络连接',
-                'CONNECTION_ERROR': '💡 连接失败，请检查 API 地址是否正确'
+                'CONNECTION_ERROR': '💡 连接失败，请检查 API 地址是否正确',
+                'VALIDATION_ERROR': '💡 请先补全必填项'
             };
             const tip = errorTips[errorCode] || '';
             
@@ -758,7 +769,7 @@ function renderConfigList(containerId, items, icon, renderEdit, renderMeta, onEd
 function renderModelConfig() {
     renderConfigList('tab-models', config.models, 'smart_toy',
         null,
-        m => `<span class="tag">${escapeHtml(m.provider||'自定义')}</span> <span class="tag">${escapeHtml(m.model||'-')}</span> <span style="font-size:0.68rem;color:rgba(255,255,255,0.25);display:block;margin-top:0.3rem;word-break:break-all">${escapeHtml(m.baseUrl||'')}</span>`,
+        m => `<span class="tag">${escapeHtml(m.provider||'自定义')}</span> <span class="tag">${escapeHtml(m.model||'-')}</span>${m.builtin ? '<span class="config-builtin-tag">内置</span>' : ''}${m.apiKey ? '<span class="tag" style="background:rgba(74,222,128,0.12);color:#4ade80">✓ 已配置 Key</span>' : ''}<span style="font-size:0.68rem;color:rgba(255,255,255,0.25);display:block;margin-top:0.3rem;word-break:break-all">${escapeHtml(m.baseUrl||'')}</span>`,
         'editModel', 'deleteModel', 'copyModel'
     );
     // 复写 add 按钮
@@ -774,11 +785,11 @@ function renderModelConfig() {
                 <div class="config-item-title"><span class="material-symbols-outlined">smart_toy</span> ${escapeHtml(m.name||'未命名')}</div>
                 <div class="config-item-actions">
                     <button onclick="copyModel(${i})" title="复制"><span class="material-symbols-outlined">content_copy</span></button>
-                    <button onclick="editModel(${i})" title="编辑"><span class="material-symbols-outlined">edit</span></button>
-                    <button class="delete-btn" onclick="deleteModel(${i})" title="删除"><span class="material-symbols-outlined">delete</span></button>
+                    ${m.builtin ? '' : `<button onclick="editModel(${i})" title="编辑"><span class="material-symbols-outlined">edit</span></button>`}
+                    ${m.builtin ? '' : `<button class="delete-btn" onclick="deleteModel(${i})" title="删除"><span class="material-symbols-outlined">delete</span></button>`}
                 </div>
             </div>
-            <div class="config-item-meta"><span class="tag">${escapeHtml(m.provider||'自定义')}</span> <span class="tag">${escapeHtml(m.model||'-')}</span>${m.apiKey ? '<span class="tag" style="background:rgba(74,222,128,0.12);color:#4ade80">✓ 已配置 Key</span>' : ''}<span style="font-size:0.68rem;color:rgba(255,255,255,0.25);display:block;margin-top:0.3rem;word-break:break-all">${escapeHtml(m.baseUrl||'')}</span></div>
+            <div class="config-item-meta"><span class="tag">${escapeHtml(m.provider||'自定义')}</span> <span class="tag">${escapeHtml(m.model||'-')}</span>${m.builtin ? '<span class="config-builtin-tag">内置</span>' : ''}${m.apiKey ? '<span class="tag" style="background:rgba(74,222,128,0.12);color:#4ade80">✓ 已配置 Key</span>' : ''}<span style="font-size:0.68rem;color:rgba(255,255,255,0.25);display:block;margin-top:0.3rem;word-break:break-all">${escapeHtml(m.baseUrl||'')}</span></div>
         </div>`).join('');
 }
 
@@ -792,11 +803,13 @@ const MODEL_FIELDS = [
 
 function addModel() {
     openModal('添加模型', MODEL_FIELDS, { provider:'自定义', baseUrl:'https://api.openai.com' }, data => {
-        config.models.push({ id:'m_'+Date.now(), ...data, active:true });
+        config.models.push({ id:'m_'+Date.now(), ...data, active:true, requiresApiKey:true });
         saveConfig(config); renderModelConfig(); renderModelDropdown();
     });
 }
 function editModel(i) {
+    const src = config.models[i];
+    if (src?.builtin) return;
     openModal('编辑模型', MODEL_FIELDS, config.models[i], data => {
         if (!data.apiKey) delete data.apiKey; // 留空则保留原值
         Object.assign(config.models[i], data);
@@ -806,11 +819,13 @@ function editModel(i) {
 function copyModel(i) {
     const src = config.models[i]; if (!src) return;
     openModal('复制模型', MODEL_FIELDS, { ...src, name: src.name+' (副本)', id:undefined }, data => {
-        config.models.push({ id:'m_'+Date.now(), ...data, active:true });
+        config.models.push({ id:'m_'+Date.now(), ...data, active:true, requiresApiKey:true });
         saveConfig(config); renderModelConfig(); renderModelDropdown();
     });
 }
 function deleteModel(i) {
+    const src = config.models[i];
+    if (src?.builtin) return alert('内置默认模型不能删除');
     if (!confirm('删除此模型？')) return;
     config.models.splice(i, 1);
     if (activeModelId && !config.models.find(m=>m.id===activeModelId)) {

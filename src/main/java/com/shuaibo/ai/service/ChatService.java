@@ -1,6 +1,11 @@
 package com.shuaibo.ai.service;
 
 import com.shuaibo.ai.config.ModelFactory;
+import com.shuaibo.ai.exception.ApiKeyInvalidException;
+import com.shuaibo.ai.exception.ModelNotFoundException;
+import com.shuaibo.ai.exception.RateLimitedException;
+import com.shuaibo.ai.exception.TimeoutException;
+import com.shuaibo.ai.exception.UpstreamServiceException;
 import com.shuaibo.ai.model.ChatRequest;
 import com.shuaibo.ai.model.ChatResponse;
 import com.shuaibo.ai.service.rag.RagService;
@@ -40,7 +45,7 @@ public class ChatService {
         if (modelName != null || baseUrl != null || apiKey != null) {
             ChatModel dynamic = modelFactory.getModel(modelName, baseUrl, apiKey);
             if (dynamic != null) {
-                log.debug("Using dynamic model: {} @ {}", modelName, baseUrl);
+                log.debug("Using dynamic model: model={}, baseUrl={}", modelName, baseUrl);
                 return dynamic;
             }
         }
@@ -126,9 +131,24 @@ public class ChatService {
                     .latencyMs(latencyMs)
                     .build();
 
+        } catch (org.springframework.web.client.HttpClientErrorException.Unauthorized e) {
+            logUpstreamError(sessionId, request);
+            throw new ApiKeyInvalidException("API Key 无效，请检查配置", e);
+        } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {
+            logUpstreamError(sessionId, request);
+            throw new ModelNotFoundException("模型不存在，请检查模型 ID 或 Base URL", e);
+        } catch (org.springframework.web.client.HttpClientErrorException.TooManyRequests e) {
+            logUpstreamError(sessionId, request);
+            throw new RateLimitedException("请求过于频繁，请稍后重试", e);
+        } catch (org.springframework.web.client.ResourceAccessException e) {
+            logUpstreamError(sessionId, request);
+            if (isTimeout(e)) {
+                throw new TimeoutException("请求超时，请重试", e);
+            }
+            throw new UpstreamServiceException("连接失败，请检查网络或 API 地址", e);
         } catch (Exception e) {
-            log.error("Chat error: sessionId={}", sessionId, e);
-            throw new RuntimeException("对话处理失败: " + e.getMessage(), e);
+            log.error("Chat error: sessionId={}, model={}, baseUrl={}", sessionId, request.getModel(), request.getBaseUrl(), e);
+            throw new UpstreamServiceException("对话处理失败: " + e.getMessage(), e);
         }
     }
 
@@ -214,9 +234,25 @@ public class ChatService {
                             }
                     );
 
+        } catch (org.springframework.web.client.HttpClientErrorException.Unauthorized e) {
+            logUpstreamError(sessionId, request);
+            callback.onError(new ApiKeyInvalidException("API Key 无效，请检查配置", e));
+        } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {
+            logUpstreamError(sessionId, request);
+            callback.onError(new ModelNotFoundException("模型不存在，请检查模型 ID 或 Base URL", e));
+        } catch (org.springframework.web.client.HttpClientErrorException.TooManyRequests e) {
+            logUpstreamError(sessionId, request);
+            callback.onError(new RateLimitedException("请求过于频繁，请稍后重试", e));
+        } catch (org.springframework.web.client.ResourceAccessException e) {
+            logUpstreamError(sessionId, request);
+            if (isTimeout(e)) {
+                callback.onError(new TimeoutException("请求超时，请重试", e));
+            } else {
+                callback.onError(new UpstreamServiceException("连接失败，请检查网络或 API 地址", e));
+            }
         } catch (Exception e) {
-            log.error("Stream chat error: sessionId={}", sessionId, e);
-            callback.onError(e);
+            log.error("Stream chat error: sessionId={}, model={}, baseUrl={}", sessionId, request.getModel(), request.getBaseUrl(), e);
+            callback.onError(new UpstreamServiceException("对话处理失败: " + e.getMessage(), e));
         }
     }
 
@@ -241,5 +277,18 @@ public class ChatService {
      */
     public void clearHistory(String sessionId) {
         conversationHistory.remove(sessionId);
+    }
+
+    private void logUpstreamError(String sessionId, ChatRequest request) {
+        log.warn("Upstream chat error: sessionId={}, model={}, baseUrl={}, apiKeyPresent={}",
+                sessionId,
+                request.getModel(),
+                request.getBaseUrl(),
+                request.getApiKey() != null && !request.getApiKey().isBlank());
+    }
+
+    private boolean isTimeout(Throwable e) {
+        String message = e.getMessage();
+        return message != null && message.toLowerCase().contains("timeout");
     }
 }

@@ -6,8 +6,10 @@ import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Objects;
 
 /**
  * 动态模型工厂 — 根据请求参数创建 ChatModel
@@ -25,8 +27,16 @@ public class ModelFactory {
     @Value("${spring.ai.openai.chat.options.model:Qwen/Qwen2.5-7B-Instruct}")
     private String defaultModel;
 
-    /** 模型缓存 key = baseUrl + "|" + model */
-    private final Map<String, OpenAiChatModel> modelCache = new ConcurrentHashMap<>();
+    private static final int MAX_CACHE_SIZE = 32;
+    private static final long CACHE_TTL_MILLIS = Duration.ofMinutes(15).toMillis();
+
+    private final Map<String, CacheEntry> modelCache = java.util.Collections.synchronizedMap(
+            new LinkedHashMap<>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, CacheEntry> eldest) {
+                    return size() > MAX_CACHE_SIZE;
+                }
+            });
 
     /**
      * 获取 ChatModel
@@ -50,16 +60,48 @@ public class ModelFactory {
             return null;
         }
 
-        String cacheKey = resolvedUrl + "|" + resolvedModel;
-        return modelCache.computeIfAbsent(cacheKey, k -> {
-            OpenAiApi openAiApi = new OpenAiApi(resolvedUrl, resolvedKey);
-            OpenAiChatOptions options = OpenAiChatOptions.builder()
-                    .withModel(resolvedModel)
-                    .withTemperature(0.7)
-                    .withMaxTokens(2048)
-                    .build();
-            return new OpenAiChatModel(openAiApi, options);
-        });
+        String cacheKey = buildCacheKey(resolvedUrl, resolvedModel, resolvedKey);
+        long now = System.currentTimeMillis();
+
+        synchronized (modelCache) {
+            CacheEntry entry = modelCache.get(cacheKey);
+            if (entry != null && !entry.isExpired(now)) {
+                return entry.model();
+            }
+        }
+
+        OpenAiChatModel model = createModel(resolvedUrl, resolvedKey, resolvedModel);
+        synchronized (modelCache) {
+            modelCache.put(cacheKey, new CacheEntry(model, now));
+        }
+        return model;
+    }
+
+    private OpenAiChatModel createModel(String resolvedUrl, String resolvedKey, String resolvedModel) {
+        OpenAiApi openAiApi = new OpenAiApi(resolvedUrl, resolvedKey);
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .withModel(resolvedModel)
+                .withTemperature(0.7)
+                .withMaxTokens(2048)
+                .build();
+        return new OpenAiChatModel(openAiApi, options);
+    }
+
+    private String buildCacheKey(String baseUrl, String model, String apiKey) {
+        return String.join("|",
+                normalize(baseUrl),
+                normalize(model),
+                normalize(apiKey));
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value;
+    }
+
+    private record CacheEntry(OpenAiChatModel model, long createdAt) {
+        boolean isExpired(long now) {
+            return now - createdAt > CACHE_TTL_MILLIS;
+        }
     }
 
     public String getDefaultModel() {

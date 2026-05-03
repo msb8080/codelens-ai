@@ -54,10 +54,8 @@ const STORAGE_KEY = 'omniagent-config-v2';
 
 function defaultConfig() {
     return {
-        apiUrl: 'https://codelens-ai-ghfh.onrender.com',
-        models: [
-            { id:'siliconflow', name:'Qwen2.5-7B', provider:'硅基流动', baseUrl:'https://api.siliconflow.cn', apiKey:'sk-xvrssvsidkkjmxikhzgwwesvfayihaztdjhogblfdybphcha', model:'Qwen/Qwen2.5-7B-Instruct', active:true },
-        ],
+        apiUrl: '',
+        models: [],
         agents: JSON.parse(JSON.stringify(BUILTIN_AGENTS)),
         agentBindings: {},
         mcps: JSON.parse(JSON.stringify(BUILTIN_MCPS)),
@@ -88,7 +86,7 @@ function saveConfig(cfg) { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)
 let config = loadConfig();
 
 function getApiBase() {
-    return new URLSearchParams(window.location.search).get('api') || config.apiUrl || 'https://codelens-ai-ghfh.onrender.com';
+    return new URLSearchParams(window.location.search).get('api') || config.apiUrl || '';
 }
 
 // ===== Markdown =====
@@ -813,4 +811,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 自动选择通用助手
     selectAgent('general');
+
+    // 首次使用：无 API 地址或无模型时，弹出配置引导
+    if (!config.apiUrl || !config.models.length) {
+        showFirstTimeSetup();
+    }
 });
+
+// ===== 首次配置引导 =====
+function showFirstTimeSetup() {
+    openModal('🚀 欢迎使用 OmniAgent', [
+        { key:'apiUrl', label:'后端 API 地址', type:'text', placeholder:'https://your-app.onrender.com', required:true, hint:'部署的后端服务地址（不含尾部 /）' },
+        { key:'modelName', label:'模型显示名称', type:'text', placeholder:'例如: Qwen2.5-7B', required:true },
+        { key:'modelId', label:'模型 ID（API 调用名）', type:'text', placeholder:'例如: Qwen/Qwen2.5-7B-Instruct', required:true },
+        { key:'provider', label:'提供商', type:'text', placeholder:'例如: 硅基流动' },
+        { key:'baseUrl', label:'模型 Base URL（不含 /v1）', type:'text', placeholder:'https://api.siliconflow.cn', required:true },
+        { key:'apiKey', label:'API Key', type:'password', placeholder:'输入你的 API Key', required:true },
+    ], { provider:'自定义', baseUrl:'https://api.siliconflow.cn' }, data => {
+        config.apiUrl = data.apiUrl;
+        config.models.push({
+            id: 'm_' + Date.now(),
+            name: data.modelName,
+            model: data.modelId,
+            provider: data.provider || '自定义',
+            baseUrl: data.baseUrl,
+            apiKey: data.apiKey,
+            active: true,
+        });
+        saveConfig(config);
+        activeModelId = config.models[0].id;
+        updateModelLabel(config.models[0]);
+        renderModelDropdown();
+    });
+}

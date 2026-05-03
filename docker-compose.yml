@@ -20,7 +20,7 @@ services:
       - "8090:8090"
     environment:
       - AI_BASE_URL=${AI_BASE_URL:-https://token-plan-cn.xiaomimimo.com}
-      - AI_API_KEY=${AI_API_KEY:-tp-cu7gtm52l168jgi222a8wcdbel5z3y02pcqib5cq7jh92082}
+      - AI_API_KEY=${AI_API_KEY}
       - AI_MODEL=${AI_MODEL:-mimo-v2.5-pro}
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6334

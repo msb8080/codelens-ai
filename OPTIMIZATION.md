@@ -13,14 +13,14 @@
 
 | # | 类别 | 问题 | 方案 | 状态 | 备注 |
 |---|------|------|------|------|------|
-| 0.1 | 安全 | `.env.example` 含小米 mimo 真实 API Key | 改为占位符 `tp-your-api-key-here` | ⬜ | |
-| 0.2 | 安全 | `docker-compose.yml` 环境变量默认值含真实 Key | 去掉默认值，强制 `.env` 注入 | ⬜ | |
-| 0.3 | 安全 | `application.yml` 含硅基流动真实 Key 默认值 | 默认值改为空，启动时必须通过环境变量注入 | ⬜ | |
-| 0.4 | 安全 | 前端 `app.js` `defaultConfig()` 含 API Key 明文 | 去掉默认 Key，首次使用弹窗配置 | ⬜ | |
+| 0.1 | 安全 | `.env.example` 含小米 mimo 真实 API Key | 改为占位符 `tp-your-api-key-here` | ✅ | 同时修正 Base URL 去掉 /v1，统一模型为 mimo-v2.5-pro |
+| 0.2 | 安全 | `docker-compose.yml` 环境变量默认值含真实 Key | 去掉默认值，强制 `.env` 注入 | ✅ | |
+| 0.3 | 安全 | `application.yml` 含硅基流动真实 Key 默认值 | 默认值改为空，启动时必须通过环境变量注入 | ✅ | 同时统一默认模型为 mimo-v2.5-pro |
+| 0.4 | 安全 | 前端 `app.js` `defaultConfig()` 含 API Key 明文 | 去掉默认 Key，首次使用弹窗配置 | ✅ | 添加 `showFirstTimeSetup()` 引导 |
 | 0.5 | 部署 | Render Free 计划 15 分钟休眠，冷启动 ~30s | 升级 Starter ($7/月) 或换 Railway/Fly.io | ⬜ | 决策：_____ |
 | 0.6 | 部署 | Render 无 Qdrant，生产 RAG 不可用 | 接入 Qdrant Cloud 免费层 (1GB) | ⬜ | |
-| 0.7 | 配置 | `.env.example` 的 Base URL 多了 `/v1` | 去掉 `/v1`（Spring AI 自动追加） | ⬜ | |
-| 0.8 | 配置 | `application.yml` 默认模型是硅基流动，其他地方用小米 mimo | 统一默认提供商为小米 mimo | ⬜ | |
+| 0.7 | 配置 | `.env.example` 的 Base URL 多了 `/v1` | 去掉 `/v1`（Spring AI 自动追加） | ✅ | 随 0.1 一起修复 |
+| 0.8 | 配置 | `application.yml` 默认模型是硅基流动，其他地方用小米 mimo | 统一默认提供商为小米 mimo | ✅ | 随 0.3 一起修复 |
 
 ---
 
@@ -35,9 +35,9 @@
 | 1.3 | 后端 | sessionId 固定 `"default"`，所有用户共享历史 | 前端生成 `crypto.randomUUID()`，支持多会话 | ⬜ | |
 | 1.4 | 后端 | `RagService.search()` 是空壳，TODO 未完成 | 接入 Qdrant gRPC Client 实现向量检索 | ⬜ | 依赖 0.6 |
 | 1.5 | 安全 | API Key 明文存 localStorage | 短期 base64 混淆；长期 Key 存后端，前端只传 model ID | ⬜ | |
-| 1.6 | 部署 | CORS 白名单硬编码在 Java 代码中 | 改为环境变量 `CORS_ALLOWED_ORIGINS`，`CorsConfig` 读配置 | ⬜ | |
-| 1.7 | 部署 | 前端 API 地址硬编码 Render URL（3 处） | 去掉硬编码，首次使用弹窗配置 + 支持 `?api=` 参数 | ⬜ | |
-| 1.8 | 部署 | `src/main/resources/static/` 与 `docs/` 重复 | 删除 `static/`，统一为 `docs/` 作为唯一前端源 | ⬜ | |
+| 1.6 | 部署 | CORS 白名单硬编码在 Java 代码中 | 改为环境变量 `CORS_ALLOWED_ORIGINS`，`CorsConfig` 读配置 | ✅ | `application.yml` + `render.yaml` 已配置 |
+| 1.7 | 部署 | 前端 API 地址硬编码 Render URL（3 处） | 去掉硬编码，首次使用弹窗配置 + 支持 `?api=` 参数 | ✅ | `showFirstTimeSetup()` 引导 |
+| 1.8 | 部署 | `src/main/resources/static/` 与 `docs/` 重复 | 删除 `static/`，统一为 `docs/` 作为唯一前端源 | ✅ | 已删除 static/ |
 
 ---
 
@@ -69,8 +69,8 @@
 | 3.1 | 错误处理 | 异常直接抛 RuntimeException，前端只显示 HTTP 500 | 后端返回结构化错误码（API_KEY_INVALID / MODEL_UNAVAILABLE / TIMEOUT），前端友好提示 + 重试 | ⬜ | |
 | 3.2 | 验证 | `ChatRequest` 无 Bean Validation | 添加 `@NotBlank` 等注解，Controller 层 `@Validated` | ⬜ | |
 | 3.3 | 性能 | `ModelFactory.getModel()` 每次可能创建新实例 | 按 `baseUrl+model+apiKey` 做 LRU 缓存 | ⬜ | |
-| 3.4 | 部署 | Dockerfile 无 health check | 添加 `HEALTHCHECK` 指令 | ⬜ | |
-| 3.5 | 部署 | JVM 无内存限制参数 | 添加 `-XX:MaxRAMPercentage=75.0` 适配容器 | ⬜ | |
+| 3.4 | 部署 | Dockerfile 无 health check | 添加 `HEALTHCHECK` 指令 | ✅ | wget 探活 /api/health |
+| 3.5 | 部署 | JVM 无内存限制参数 | 添加 `-XX:MaxRAMPercentage=75.0` 适配容器 | ✅ | G1GC + ExitOnOutOfMemoryError |
 | 3.6 | 部署 | Render auto-deploy 未确认 | 检查 Render Dashboard 是否配了 auto-deploy | ⬜ | |
 
 ---
@@ -115,3 +115,9 @@
 | 日期 | 完成项 | 备注 |
 |------|--------|------|
 | 2026-05-02 | 创建优化清单文档 | 综合架构审查 + ChatGPT 前端评估 |
+| 2026-05-02 | Phase 0: 安全泄露修复 | 清除 3 处明文 API Key，统一默认模型配置 |
+| 2026-05-02 | Phase 0: 前端首次配置引导 | 添加 `showFirstTimeSetup()` 弹窗表单 |
+| 2026-05-02 | Phase 1: CORS 环境变量化 | `CorsConfig` 改为读取 `cors.allowed-origins` |
+| 2026-05-02 | Phase 1: 前端 API 地址去硬编码 | 移除 3 处 Render URL 硬编码 |
+| 2026-05-02 | Phase 1: 清理重复静态文件 | 删除 `src/main/resources/static/` |
+| 2026-05-02 | Phase 3: Dockerfile 优化 | 添加 health check + JVM 调优参数 |

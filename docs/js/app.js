@@ -12,6 +12,7 @@ let streamingMsgEl = null;
 let activeAgentId = null;
 let activeModelId = null;
 let modalCallback = null; // 当前模态框保存回调
+let isComposing = false; // 输入法组合状态
 
 // ===== 内置智能体（顺序即侧边栏显示顺序） =====
 const BUILTIN_AGENTS = [
@@ -128,6 +129,84 @@ function renderMermaidInElement(c) {
 function scrollToBottom() {
     const c = messages.querySelector('.streaming-cursor');
     if (c) c.scrollIntoView({ behavior:'auto', block:'end' }); else messages.scrollTop = messages.scrollHeight;
+}
+
+// 导航功能
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function scrollToBottomNav() {
+    const messagesEl = document.getElementById('messages');
+    if (messagesEl) {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+}
+
+// 显示/隐藏导航按钮
+function updateScrollNav() {
+    const scrollNav = document.getElementById('scrollNav');
+    if (!scrollNav) return;
+    
+    const messagesEl = document.getElementById('messages');
+    const hasMessages = messagesEl && messagesEl.children.length > 2;
+    const isScrolled = window.scrollY > 300;
+    
+    if (hasMessages || isScrolled) {
+        scrollNav.classList.add('visible');
+    } else {
+        scrollNav.classList.remove('visible');
+    }
+}
+
+// 监听滚动事件
+window.addEventListener('scroll', updateScrollNav);
+window.addEventListener('load', updateScrollNav);
+
+// 代码块复制功能
+function addCodeCopyButtons() {
+    document.querySelectorAll('.bubble pre').forEach(pre => {
+        if (pre.querySelector('.code-block-header')) return;
+        
+        const code = pre.querySelector('code');
+        if (!code) return;
+        
+        // 检测语言
+        const langMatch = code.className.match(/language-(\w+)/);
+        const lang = langMatch ? langMatch[1] : 'code';
+        
+        // 创建头部
+        const header = document.createElement('div');
+        header.className = 'code-block-header';
+        header.innerHTML = `
+            <span class="code-block-lang">${lang}</span>
+            <button class="code-copy-btn" onclick="copyCodeBlock(this)">
+                <span class="material-symbols-outlined">content_copy</span>
+                复制
+            </button>
+        `;
+        
+        pre.insertBefore(header, pre.firstChild);
+    });
+}
+
+function copyCodeBlock(btn) {
+    const pre = btn.closest('pre');
+    const code = pre.querySelector('code');
+    if (!code) return;
+    
+    const text = code.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        btn.classList.add('copied');
+        btn.innerHTML = '<span class="material-symbols-outlined">check</span> 已复制';
+        
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = '<span class="material-symbols-outlined">content_copy</span> 复制';
+        }, 2000);
+    }).catch(err => {
+        console.error('复制失败:', err);
+    });
 }
 
 // =========================================
@@ -379,6 +458,8 @@ function finalizeStopped(msgEl, fullText) {
     const c = msgEl.querySelector('.streaming-cursor'); if (c) c.remove();
     addMessageActions(msgEl);
     addContinueButton(msgEl);
+    addCodeCopyButtons();
+    updateScrollNav();
     $('msgCount').textContent = `消息: ${messages.querySelectorAll('.message').length}`;
     return fullText;
 }
@@ -399,7 +480,7 @@ function createStreamingMessage() {
     const agent = config.agents.find(a=>a.id===activeAgentId);
     const div = document.createElement('div'); div.className='message ai streaming';
     div.innerHTML=`<div class="msg-avatar">${agent?agent.emoji:'🧠'}</div><div class="msg-body"><div class="bubble"><span class="stream-text"></span><span class="streaming-cursor"></span></div><div class="msg-meta"><span class="meta-status generating">正在生成</span><span class="generating-dots"><i></i><i></i><i></i></span></div></div>`;
-    messages.appendChild(div); scrollToBottom(); return div;
+    messages.appendChild(div); scrollToBottom(); updateScrollNav(); return div;
 }
 function finalizeStreamingMessage(msgEl, latency, tokenUsage) {
     msgEl.classList.remove('streaming');
@@ -414,6 +495,8 @@ function finalizeStreamingMessage(msgEl, latency, tokenUsage) {
         meta.textContent = p.join(' · ');
     }
     addMessageActions(msgEl);
+    addCodeCopyButtons();
+    updateScrollNav();
     $('msgCount').textContent = `消息: ${messages.querySelectorAll('.message').length}`;
 }
 function addMessageActions(msgEl) {
@@ -450,8 +533,9 @@ function addMessage(role, text) {
     const content = role==='ai'?parseMarkdown(text):escapeHtml(text).replace(/\n/g,'<br>');
     div.innerHTML=`<div class="msg-avatar">${role==='user'?'👤':(agent?agent.emoji:'🧠')}</div><div class="msg-body"><div class="bubble">${content}</div><div class="msg-meta">${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div></div>`;
     messages.appendChild(div);
-    if (role==='ai') { renderMermaidInElement(div.querySelector('.bubble')); addMessageActions(div); }
+    if (role==='ai') { renderMermaidInElement(div.querySelector('.bubble')); addMessageActions(div); addCodeCopyButtons(); }
     scrollToBottom();
+    updateScrollNav();
     $('msgCount').textContent = `消息: ${messages.querySelectorAll('.message').length}`;
 }
 
@@ -568,7 +652,10 @@ function switchMode(mode) {
     };
     input.placeholder = placeholders[mode] || placeholders.chat;
 }
-input.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); if(currentAbort) currentAbort(); else send(); } });
+input.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey&&!isComposing) { e.preventDefault(); if(currentAbort) currentAbort(); else send(); } });
+// 处理输入法组合状态
+input.addEventListener('compositionstart', () => { isComposing = true; });
+input.addEventListener('compositionend', () => { isComposing = false; });
 function updateStats(latency, tokenUsage) {
     if (latency) $('latencyDisplay').textContent = `延迟: ${latency}ms`;
     if (tokenUsage?.totalTokens) {

@@ -11,7 +11,7 @@ body,html{background-color:var(--bg-dark);color:#e0e0e0;overflow-x:hidden;scroll
 .dot-matrix{position:fixed;inset:0;z-index:-4;pointer-events:none;background-image:radial-gradient(rgba(126,90,220,0.12) 1px,transparent 1px);background-size:24px 24px}
 
 /* 主容器 */
-.main-container{max-width:1200px;margin:0 auto;padding:50px 1.5rem 60px;min-height:100vh;display:flex;flex-direction:column}
+.main-container{max-width:1200px;margin:0 auto;padding:50px 1.5rem 100px;min-height:100vh;display:flex;flex-direction:column}
 
 /* Hero */
 .hero{text-align:center;margin-bottom:1.5rem}
@@ -29,12 +29,8 @@ body,html{background-color:var(--bg-dark);color:#e0e0e0;overflow-x:hidden;scroll
 .tech-tag:hover{background:rgba(126,90,220,0.15);border-color:rgba(126,90,220,0.3);transform:translateY(-2px)}
 .tech-tag .material-symbols-outlined{font-size:16px;color:var(--brand-light)}
 
-/* 聊天卡片 */
-.chat-card-wrapper{position:relative;width:100%;flex:1;min-height:560px;height:calc(100vh - 300px)}
-.chat-card{position:relative;width:100%;height:100%;border-radius:1.5rem}
-.card-base{position:absolute;inset:0;border-radius:inherit;background:linear-gradient(135deg,var(--brand),var(--brand-dark));box-shadow:0 4px 15px rgba(126,90,220,0.3),0 30px 60px rgba(0,0,0,0.3)}
-.card-glass{position:absolute;inset:0;border-radius:inherit;background:rgba(255,255,255,0.05);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.1);opacity:0;pointer-events:none}
-.card-content{position:relative;z-index:10;background:rgba(26,16,48,0.9);backdrop-filter:blur(20px);border:1px solid rgba(126,90,220,0.15);border-radius:1.5rem;overflow:hidden;height:100%;display:flex;flex-direction:column}
+/* 聊天容器 */
+.chat-container{position:relative;width:100%;flex:1;min-height:560px;height:calc(100vh - 400px);background:rgba(26,16,48,0.9);backdrop-filter:blur(20px);border:1px solid rgba(126,90,220,0.15);border-radius:1.5rem;overflow:hidden;display:flex;flex-direction:column}
 
 /* 聊天头部 */
 .chat-header{padding:0.85rem 1.25rem;border-bottom:1px solid rgba(126,90,220,0.1);display:flex;align-items:center;justify-content:space-between}
@@ -77,25 +73,34 @@ body,html{background-color:var(--bg-dark);color:#e0e0e0;overflow-x:hidden;scroll
 .messages::-webkit-scrollbar-thumb:hover{background:rgba(126,90,220,0.5)}
 
 /* 消息气泡 */
-.message{display:flex;gap:0.75rem;max-width:90%;animation:messageIn 0.4s cubic-bezier(0.23,1,0.32,1)}
+.message{display:flex;gap:1rem;max-width:90%;animation:messageIn 0.4s cubic-bezier(0.23,1,0.32,1);margin-bottom:1.5rem}
 @keyframes messageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .message.user{align-self:flex-end;flex-direction:row-reverse}
-.message.ai{align-self:flex-start}
+.message.ai{align-self:flex-start;width:100%;max-width:100%}
 .msg-avatar{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
 .message.user .msg-avatar{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,0.3)}
 .message.ai .msg-avatar{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff;box-shadow:0 4px 12px rgba(126,90,220,0.3)}
-.msg-body{display:flex;flex-direction:column;gap:0.25rem}
-.bubble{padding:0.875rem 1.125rem;border-radius:16px;line-height:1.7;font-size:0.9rem;position:relative}
-.message.user .bubble{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border-bottom-right-radius:4px;box-shadow:0 4px 15px rgba(37,99,235,0.25)}
-.message.ai .bubble{background:rgba(255,255,255,0.06);backdrop-filter:blur(10px);border:1px solid rgba(126,90,220,0.15);color:rgba(255,255,255,0.9);border-bottom-left-radius:4px}
-.bubble code{background:rgba(0,0,0,0.3);padding:0.15em 0.4em;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.85em;color:var(--brand-light)}
-.bubble pre{background:rgba(0,0,0,0.4);padding:1rem;border-radius:8px;overflow-x:auto;margin:0.5rem 0;border:1px solid rgba(126,90,220,0.1)}
-.bubble pre code{background:none;padding:0;color:#e0e0e0}
-.bubble ul,.bubble ol{padding-left:1.2rem;margin:0.5rem 0}
-.bubble li{margin:0.3rem 0}
+.msg-body{display:flex;flex-direction:column;gap:0.25rem;flex:1;min-width:0}
+.bubble{padding:1rem 1.25rem;border-radius:16px;line-height:1.8;font-size:0.9rem;position:relative}
+.message.user .bubble{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border-bottom-right-radius:4px;box-shadow:0 4px 15px rgba(37,99,235,0.25);max-width:80%;margin-left:auto}
+.message.ai .bubble{background:transparent;color:rgba(255,255,255,0.92);padding:0;border-radius:0}
+.bubble code{background:rgba(126,90,220,0.15);padding:0.15em 0.4em;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.85em;color:var(--brand-light)}
+.bubble pre{background:rgba(0,0,0,0.4);border:1px solid rgba(126,90,220,0.2);border-radius:12px;margin:0.75rem 0;position:relative;overflow:hidden}
+.bubble pre code{background:none;padding:0;color:#e0e0e0;display:block;overflow-x:auto;padding:1rem;font-size:0.82rem;line-height:1.6}
+.bubble ul,.bubble ol{padding-left:1.5rem;margin:0.5rem 0}
+.bubble li{margin:0.4rem 0;line-height:1.7}
 .bubble strong{color:#fff;font-weight:600}
-.msg-meta{font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'Space Mono',monospace;padding:0 0.25rem}
-.message.user .msg-meta{text-align:right}
+.bubble p{margin:0.5rem 0}
+.bubble h1,.bubble h2,.bubble h3{margin:1rem 0 0.5rem;color:#fff}
+.msg-meta{font-size:0.7rem;color:rgba(255,255,255,0.35);font-family:'Space Mono',monospace;padding:0.5rem 0 0;display:flex;align-items:center;gap:0.75rem}
+.message.user .msg-meta{justify-content:flex-end}
+
+/* 代码块复制按钮 */
+.code-block-header{display:flex;justify-content:space-between;align-items:center;padding:0.5rem 1rem;background:rgba(126,90,220,0.1);border-bottom:1px solid rgba(126,90,220,0.15);border-radius:12px 12px 0 0}
+.code-block-lang{font-size:0.7rem;color:rgba(255,255,255,0.5);font-family:'Space Mono',monospace;text-transform:uppercase}
+.code-copy-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(126,90,220,0.2);border-radius:6px;padding:0.25rem 0.5rem;color:rgba(255,255,255,0.6);font-size:0.7rem;cursor:pointer;display:flex;align-items:center;gap:0.3rem;transition:all 0.2s}
+.code-copy-btn:hover{background:rgba(126,90,220,0.2);color:#fff}
+.code-copy-btn.copied{background:rgba(74,222,128,0.2);color:#4ade80;border-color:rgba(74,222,128,0.3)}
 
 /* 流式 */
 .streaming-cursor{display:inline-block;width:2px;height:1.1em;background:var(--brand-light);margin-left:2px;vertical-align:text-bottom;animation:cursorBlink 0.8s step-end infinite}
@@ -128,6 +133,14 @@ body,html{background-color:var(--bg-dark);color:#e0e0e0;overflow-x:hidden;scroll
  * 输入区（Cursor/Claude 风格一体化）
  * ========================================= */
 .input-area{padding:0.75rem 1.25rem;position:relative;flex-shrink:0}
+
+/* 固定输入区 */
+.input-area-fixed{
+    position:fixed;bottom:0;left:0;right:0;z-index:100;
+    padding:1rem 1.5rem;
+    background:rgba(26,16,48,0.95);backdrop-filter:blur(20px);
+    border-top:1px solid rgba(126,90,220,0.15);
+}
 
 /* 主容器 */
 .input-box{
@@ -201,7 +214,7 @@ body,html{background-color:var(--bg-dark);color:#e0e0e0;overflow-x:hidden;scroll
     position:absolute;bottom:100%;left:0.5rem;margin-bottom:0.5rem;
     background:rgba(26,16,48,0.97);backdrop-filter:blur(20px);
     border:1px solid rgba(126,90,220,0.25);border-radius:12px;padding:0.5rem;
-    min-width:260px;box-shadow:0 10px 40px rgba(0,0,0,0.4);z-index:50;
+    min-width:260px;box-shadow:0 10px 40px rgba(0,0,0,0.4);z-index:150;
     animation:dropdownIn 0.2s ease;
 }
 @keyframes dropdownIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
@@ -225,7 +238,7 @@ body,html{background-color:var(--bg-dark);color:#e0e0e0;overflow-x:hidden;scroll
     position:absolute;bottom:100%;left:1.25rem;margin-bottom:0.25rem;
     width:280px;background:rgba(26,16,48,0.97);backdrop-filter:blur(20px);
     border:1px solid rgba(126,90,220,0.25);border-radius:12px;padding:0.4rem;
-    box-shadow:0 10px 40px rgba(0,0,0,0.4);z-index:60;display:none;
+    box-shadow:0 10px 40px rgba(0,0,0,0.4);z-index:160;display:none;
     animation:dropdownIn 0.15s ease;
 }
 .slash-item{
@@ -240,6 +253,13 @@ body,html{background-color:var(--bg-dark);color:#e0e0e0;overflow-x:hidden;scroll
 .status-bar{margin-top:1.25rem;display:flex;justify-content:center;gap:2rem;flex-wrap:wrap}
 .status-item{display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:rgba(255,255,255,0.4);font-family:'Space Mono',monospace}
 .status-item .material-symbols-outlined{font-size:16px;color:var(--brand-light)}
+
+/* 导航按钮 */
+.scroll-nav{position:fixed;right:1.5rem;bottom:120px;z-index:90;display:flex;flex-direction:column;gap:0.5rem;opacity:0;visibility:hidden;transition:all 0.3s}
+.scroll-nav.visible{opacity:1;visibility:visible}
+.scroll-nav-btn{width:40px;height:40px;border-radius:12px;background:rgba(26,16,48,0.9);backdrop-filter:blur(10px);border:1px solid rgba(126,90,220,0.25);color:rgba(255,255,255,0.7);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;box-shadow:0 4px 15px rgba(0,0,0,0.3)}
+.scroll-nav-btn:hover{background:rgba(126,90,220,0.3);color:#fff;border-color:var(--brand);transform:translateY(-2px)}
+.scroll-nav-btn .material-symbols-outlined{font-size:20px}
 
 footer{text-align:center;padding:2rem 0;color:rgba(255,255,255,0.25);font-size:0.75rem;font-family:'Space Mono',monospace}
 .gsap-reveal{opacity:0;visibility:hidden}
@@ -342,10 +362,11 @@ footer{text-align:center;padding:2rem 0;color:rgba(255,255,255,0.25);font-size:0
 @media(max-width:768px){
     .hero h1{font-size:2.2rem}
     .hero-desc{font-size:0.82rem}
-    .main-container{padding:30px 1rem 40px}
+    .main-container{padding:30px 1rem 120px}
     .message{max-width:92%}
     .chat-header{padding:0.75rem 1rem}
     .input-area{padding:0.5rem 0.75rem}
+    .input-area-fixed{padding:0.75rem 1rem}
     .input-box{padding:0.4rem;gap:0.3rem}
     .mode-switch{display:none}
     .model-select{max-width:90px;font-size:0.65rem}
@@ -355,8 +376,10 @@ footer{text-align:center;padding:2rem 0;color:rgba(255,255,255,0.25);font-size:0
     .config-tab{padding:0.6rem 0.75rem;font-size:0.75rem}
     .agent-sidebar{width:230px}
     /* 移动端关闭毛玻璃，降低 GPU 压力 */
-    .card-content{backdrop-filter:none;background:rgba(26,16,48,0.97)}
+    .chat-container{backdrop-filter:none;background:rgba(26,16,48,0.97)}
     .tech-tag{backdrop-filter:none}
+    .scroll-nav{right:1rem;bottom:100px}
+    .scroll-nav-btn{width:36px;height:36px}
 }
 
 /* Markdown 增强 */

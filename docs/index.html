@@ -50,94 +50,88 @@
             <div class="tech-tag"><span class="material-symbols-outlined">smart_toy</span> 多模型</div>
         </div>
 
-        <!-- 聊天卡片 -->
-        <div class="chat-card-wrapper gsap-reveal">
-            <div class="chat-card" id="chatCard">
-                <div class="card-base"></div>
-                <div class="card-glass"></div>
-
-                <div class="card-content">
-                    <!-- 头部 -->
-                    <div class="chat-header">
-                        <div class="chat-header-left">
-                            <div class="chat-avatar" id="agentAvatar">🧠</div>
-                            <div class="chat-info">
-                                <h3 id="agentName">通用助手</h3>
-                                <p id="agentDesc">问答、翻译、写作、头脑风暴</p>
-                            </div>
-                        </div>
-                        <div class="header-right">
-                            <button class="agent-selector-btn" id="agentSelectorBtn" onclick="toggleAgentPanel()" title="切换智能体">
-                                <span class="material-symbols-outlined">diversity_3</span>
-                            </button>
-                            <button class="config-toggle-btn" onclick="openConfigPanel()" title="系统配置">
-                                <span class="material-symbols-outlined">tune</span>
-                            </button>
-                        </div>
+        <!-- 聊天容器 -->
+        <div class="chat-container gsap-reveal">
+            <!-- 头部 -->
+            <div class="chat-header">
+                <div class="chat-header-left">
+                    <div class="chat-avatar" id="agentAvatar">🧠</div>
+                    <div class="chat-info">
+                        <h3 id="agentName">通用助手</h3>
+                        <p id="agentDesc">问答、翻译、写作、头脑风暴</p>
                     </div>
-
-                    <!-- Agent 侧边栏 -->
-                    <div class="agent-sidebar" id="agentSidebar">
-                        <div class="agent-sidebar-header">
-                            <h4>选择智能体</h4>
-                            <button class="agent-sidebar-close" onclick="toggleAgentPanel()">
-                                <span class="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-                        <div class="agent-categories" id="agentCategories"></div>
-                    </div>
-                    <div class="agent-sidebar-overlay" id="agentSidebarOverlay" style="display:none;" onclick="toggleAgentPanel()"></div>
-
-                    <!-- 消息区 -->
-                    <div class="messages" id="messages"></div>
-
-                    <!-- 输入区 -->
-                    <div class="input-area">
-                        <div class="input-box">
-
-                            <!-- 左侧功能区 -->
-                            <div class="input-left">
-                                <div class="model-select" id="modelIndicator" onclick="toggleModelSelector()">
-                                    <span class="material-symbols-outlined">smart_toy</span>
-                                    <span id="currentModelLabel">--</span>
-                                    <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-                                </div>
-                                <div class="mode-switch">
-                                    <button class="mode-btn active" data-mode="chat" onclick="switchMode('chat')">Chat</button>
-                                    <button class="mode-btn" data-mode="rag" onclick="switchMode('rag')">RAG</button>
-                                    <button class="mode-btn" data-mode="agent" onclick="switchMode('agent')">Agent</button>
-                                </div>
-                            </div>
-
-                            <!-- 输入框 -->
-                            <textarea id="input" rows="1" placeholder="输入问题，或使用 / 调用能力..."></textarea>
-
-                            <!-- 右侧功能区 -->
-                            <div class="input-right">
-                                <button class="icon-btn" title="上传文件" onclick="alert('文件上传功能开发中')">
-                                    <span class="material-symbols-outlined">attach_file</span>
-                                </button>
-                                <button class="send-btn" id="sendBtn" onclick="send()">
-                                    <span class="material-symbols-outlined">send</span>
-                                </button>
-                            </div>
-
-                            <!-- 模型下拉 -->
-                            <div class="model-dropdown" id="modelDropdown" style="display:none;">
-                                <div class="model-dropdown-header">切换模型</div>
-                                <div id="modelList"></div>
-                                <div class="model-dropdown-footer">
-                                    <button onclick="openConfigPanel('models')" class="model-add-btn">
-                                        <span class="material-symbols-outlined">add</span> 管理模型
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Slash 命令面板 -->
-                        <div class="slash-panel" id="slashPanel"></div>
-                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="agent-selector-btn" id="agentSelectorBtn" onclick="toggleAgentPanel()" title="切换智能体">
+                        <span class="material-symbols-outlined">diversity_3</span>
+                    </button>
+                    <button class="config-toggle-btn" onclick="openConfigPanel()" title="系统配置">
+                        <span class="material-symbols-outlined">tune</span>
+                    </button>
+                </div>
             </div>
+
+            <!-- Agent 侧边栏 -->
+            <div class="agent-sidebar" id="agentSidebar">
+                <div class="agent-sidebar-header">
+                    <h4>选择智能体</h4>
+                    <button class="agent-sidebar-close" onclick="toggleAgentPanel()">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="agent-categories" id="agentCategories"></div>
+            </div>
+            <div class="agent-sidebar-overlay" id="agentSidebarOverlay" style="display:none;" onclick="toggleAgentPanel()"></div>
+
+            <!-- 消息区 -->
+            <div class="messages" id="messages"></div>
+        </div>
+
+        <!-- 固定输入区 -->
+        <div class="input-area-fixed">
+            <div class="input-box">
+
+                <!-- 左侧功能区 -->
+                <div class="input-left">
+                    <div class="model-select" id="modelIndicator" onclick="toggleModelSelector()">
+                        <span class="material-symbols-outlined">smart_toy</span>
+                        <span id="currentModelLabel">--</span>
+                        <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+                    </div>
+                    <div class="mode-switch">
+                        <button class="mode-btn active" data-mode="chat" onclick="switchMode('chat')">Chat</button>
+                        <button class="mode-btn" data-mode="rag" onclick="switchMode('rag')">RAG</button>
+                        <button class="mode-btn" data-mode="agent" onclick="switchMode('agent')">Agent</button>
+                    </div>
+                </div>
+
+                <!-- 输入框 -->
+                <textarea id="input" rows="1" placeholder="输入问题，或使用 / 调用能力..."></textarea>
+
+                <!-- 右侧功能区 -->
+                <div class="input-right">
+                    <button class="icon-btn" title="上传文件" onclick="alert('文件上传功能开发中')">
+                        <span class="material-symbols-outlined">attach_file</span>
+                    </button>
+                    <button class="send-btn" id="sendBtn" onclick="send()">
+                        <span class="material-symbols-outlined">send</span>
+                    </button>
+                </div>
+
+                <!-- 模型下拉 -->
+                <div class="model-dropdown" id="modelDropdown" style="display:none;">
+                    <div class="model-dropdown-header">切换模型</div>
+                    <div id="modelList"></div>
+                    <div class="model-dropdown-footer">
+                        <button onclick="openConfigPanel('models')" class="model-add-btn">
+                            <span class="material-symbols-outlined">add</span> 管理模型
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slash 命令面板 -->
+            <div class="slash-panel" id="slashPanel"></div>
         </div>
 
         <!-- 底部状态 -->
@@ -146,6 +140,16 @@
             <div class="status-item"><span class="material-symbols-outlined">toll</span><span id="tokenDisplay">Tokens: --</span></div>
             <div class="status-item"><span class="material-symbols-outlined">chat</span><span id="msgCount">消息: 0</span></div>
             <div class="status-item"><span class="material-symbols-outlined">psychology</span><span id="activeAgentDisplay">通用助手</span></div>
+        </div>
+
+        <!-- 导航按钮 -->
+        <div class="scroll-nav" id="scrollNav">
+            <button class="scroll-nav-btn" onclick="scrollToTop()" title="回到顶部">
+                <span class="material-symbols-outlined">keyboard_arrow_up</span>
+            </button>
+            <button class="scroll-nav-btn" onclick="scrollToBottomNav()" title="回到底部">
+                <span class="material-symbols-outlined">keyboard_arrow_down</span>
+            </button>
         </div>
 
         <!-- ========== 通用编辑模态框 ========== -->

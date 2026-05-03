@@ -1,42 +1,28 @@
 package com.shuaibo.ai.service.rag;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 /**
- * RAG服务 - 向量检索 + 上下文组装
+ * RAG服务 - 预留接口，当前返回空结果
+ * 后续可接入向量数据库（Qdrant/Milvus）或简单文本匹配
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class RagService {
 
-    private final EmbeddingModel embeddingModel;
-
     /**
-     * 将文本向量化
-     */
-    public float[] embed(String text) {
-        List<float[]> embeddings = embeddingModel.embed(List.of(text));
-        return embeddings.get(0);
-    }
-
-    /**
-     * 检索相关代码片段（后续接入Qdrant）
-     * 当前返回空，待Qdrant接入后实现
+     * 检索相关代码片段（暂未实现）
      */
     public List<String> search(String question, int topK) {
-        // TODO: 接入Qdrant向量检索
-        log.debug("RAG search: question={}, topK={}", question, topK);
+        log.debug("RAG search (disabled): question={}, topK={}", question, topK);
         return List.of();
     }
 
     /**
-     * 将检索结果组装为Prompt上下文
+     * 将检索结果组装为 Prompt 上下文
      */
     public String buildContext(List<String> codeSnippets) {
         if (codeSnippets == null || codeSnippets.isEmpty()) {

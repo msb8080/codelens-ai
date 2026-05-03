@@ -17,8 +17,8 @@
 | 0.2 | 安全 | `docker-compose.yml` 环境变量默认值含真实 Key | 去掉默认值，强制 `.env` 注入 | ✅ | |
 | 0.3 | 安全 | `application.yml` 含硅基流动真实 Key 默认值 | 默认值改为空，启动时必须通过环境变量注入 | ✅ | 同时统一默认模型为 mimo-v2.5-pro |
 | 0.4 | 安全 | 前端 `app.js` `defaultConfig()` 含 API Key 明文 | 去掉默认 Key，首次使用弹窗配置 | ✅ | 添加 `showFirstTimeSetup()` 引导 |
-| 0.5 | 部署 | Render Free 计划 15 分钟休眠，冷启动 ~30s | 升级 Starter ($7/月) 或换 Railway/Fly.io | ⬜ | 决策：_____ |
-| 0.6 | 部署 | Render 无 Qdrant，生产 RAG 不可用 | 接入 Qdrant Cloud 免费层 (1GB) | ⬜ | |
+| 0.5 | 部署 | Render Free 计划 15 分钟休眠，冷启动 ~30s | 接受冷启动，不付费 | ⏭️ | 免费方案有限，接受延迟 |
+| 0.6 | 部署 | Render 无 Qdrant，生产 RAG 不可用 | 去除 Qdrant 依赖，RagService 保留空接口 | ✅ | 删除 QdrantConfig + 依赖 + 配置 |
 | 0.7 | 配置 | `.env.example` 的 Base URL 多了 `/v1` | 去掉 `/v1`（Spring AI 自动追加） | ✅ | 随 0.1 一起修复 |
 | 0.8 | 配置 | `application.yml` 默认模型是硅基流动，其他地方用小米 mimo | 统一默认提供商为小米 mimo | ✅ | 随 0.3 一起修复 |
 
@@ -33,7 +33,7 @@
 | 1.1 | 架构 | DOM 即状态，不可恢复/持久化/debug | 引入 Store 状态层：`store = { messages:[], sessions:{}, streaming:false }`，UI 从 store 渲染 | ⬜ | 前端最大改动 |
 | 1.2 | 后端 | `ConcurrentHashMap` 会话历史无限增长，无清理机制 | 每 session 限 20 轮 + 24h TTL 过期清除 | ⬜ | |
 | 1.3 | 后端 | sessionId 固定 `"default"`，所有用户共享历史 | 前端生成 `crypto.randomUUID()`，支持多会话 | ⬜ | |
-| 1.4 | 后端 | `RagService.search()` 是空壳，TODO 未完成 | 接入 Qdrant gRPC Client 实现向量检索 | ⬜ | 依赖 0.6 |
+| 1.4 | 后端 | `RagService.search()` 是空壳，TODO 未完成 | 去除 Qdrant，RagService 保留空接口供后续扩展 | ⏭️ | 已删除 Qdrant 全部依赖，保留接口 |
 | 1.5 | 安全 | API Key 明文存 localStorage | 短期 base64 混淆；长期 Key 存后端，前端只传 model ID | ⬜ | |
 | 1.6 | 部署 | CORS 白名单硬编码在 Java 代码中 | 改为环境变量 `CORS_ALLOWED_ORIGINS`，`CorsConfig` 读配置 | ✅ | `application.yml` + `render.yaml` 已配置 |
 | 1.7 | 部署 | 前端 API 地址硬编码 Render URL（3 处） | 去掉硬编码，首次使用弹窗配置 + 支持 `?api=` 参数 | ✅ | `showFirstTimeSetup()` 引导 |
@@ -121,3 +121,5 @@
 | 2026-05-02 | Phase 1: 前端 API 地址去硬编码 | 移除 3 处 Render URL 硬编码 |
 | 2026-05-02 | Phase 1: 清理重复静态文件 | 删除 `src/main/resources/static/` |
 | 2026-05-02 | Phase 3: Dockerfile 优化 | 添加 health check + JVM 调优参数 |
+| 2026-05-02 | Phase 0: 去除 Qdrant 依赖 | 删除 QdrantConfig、pom 依赖、配置、docker-compose 服务 |
+| 2026-05-02 | Phase 0: Render 免费计划 | 接受冷启动，不付费 |

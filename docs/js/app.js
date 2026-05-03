@@ -87,7 +87,16 @@ function saveConfig(cfg) { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)
 let config = loadConfig();
 
 function getApiBase() {
-    return new URLSearchParams(window.location.search).get('api') || config.apiUrl || '';
+    let url = new URLSearchParams(window.location.search).get('api') || config.apiUrl || '';
+    // 去除末尾的斜杠，避免路径拼接错误
+    if (url && url.endsWith('/')) {
+        url = url.slice(0, -1);
+    }
+    // 如果当前域名与配置的 API 地址相同，使用空字符串（同源请求）
+    if (url && window.location.origin === url) {
+        return '';
+    }
+    return url;
 }
 
 // ===== Markdown =====

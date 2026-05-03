@@ -47,16 +47,16 @@
 
 | # | 类别 | 问题 | 方案 | 状态 | 备注 |
 |---|------|------|------|------|------|
-| 2.1 | 性能 | 每个 token 都 `parseMarkdown()` + Mermaid 扫描 | 流式阶段用 `textNode.textContent` 追加纯文本，`done` 时一次性 parse + Mermaid | ⬜ | 必须做 |
+| 2.1 | 性能 | 每个 token 都 `parseMarkdown()` + Mermaid 扫描 | 流式阶段用 `textNode.textContent` 追加纯文本，`done` 时一次性 parse + Mermaid | ✅ | stream-text 层 + 一次性渲染 |
 | 2.2 | 功能 | 中断后"继续"是 restart 不是续写 | 前端维护 `chatHistory[]`，后端支持 `continue: true`，真正续写 | ⬜ | |
-| 2.3 | 体验 | RAG 只显示 "RAG: 3条"，无来源信息 | 展示来源文件名列表：`📄 UserService.java · OrderController.kt` | ⬜ | 依赖 1.4 |
+| 2.3 | 体验 | RAG 只显示 "RAG: 3条"，无来源信息 | 展示来源文件名列表：`📄 UserService.java · OrderController.kt` | ⬜ | 依赖 RAG 接入 |
 | 2.4 | 体验 | Agent 执行过程不可见 | SSE 增加 `event: step`，前端显示 `🧠 思考... 🔍 检索... 🛠 调用工具...` | ⬜ | 需后端配合 |
 | 2.5 | 体验 | Token 用量展示太简单 | 改为 `Prompt: 1.2k · Completion: 320 · Cost: $0.0023` | ⬜ | |
 | 2.6 | 交互 | 输入框只有 textarea | 支持拖拽代码文件、代码模式（monospace）、粘贴代码检测 | ⬜ | |
-| 2.7 | 交互 | 消息操作只有 copy + continue | 增加 👍👎 反馈、🔁 重新生成、📌 固定 | ⬜ | |
-| 2.8 | 性能 | `backdrop-filter: blur(20px)` 移动端卡顿 | 移动端关闭毛玻璃，fallback 为半透明背景 | ⬜ | |
+| 2.7 | 交互 | 消息操作只有 copy + continue | 增加 👍👎 反馈、🔁 重新生成、📌 固定 | ✅ | copy + regenerate + feedback |
+| 2.8 | 性能 | `backdrop-filter: blur(20px)` 移动端卡顿 | 移动端关闭毛玻璃，fallback 为半透明背景 | ✅ | media query 添加 |
 | 2.9 | 交互 | 模型配置无法删除（与 MCP/Skill/Rule 不一致） | 区分"内置模型"和"用户模型"，用户模型可删 | ⬜ | |
-| 2.10 | 体验 | 打字效果只有 cursor + append | 添加流式生成时的 subtle-glow 动画 | ⬜ | |
+| 2.10 | 体验 | 打字效果只有 cursor + append | 添加流式生成时的 subtle-glow 动画 | ✅ | CSS subtleGlow keyframes |
 
 ---
 
@@ -123,3 +123,7 @@
 | 2026-05-02 | Phase 3: Dockerfile 优化 | 添加 health check + JVM 调优参数 |
 | 2026-05-02 | Phase 0: 去除 Qdrant 依赖 | 删除 QdrantConfig、pom 依赖、配置、docker-compose 服务 |
 | 2026-05-02 | Phase 0: Render 免费计划 | 接受冷启动，不付费 |
+| 2026-05-02 | Phase 2: 流式渲染优化 | textNode.textContent 流式 + done 一次性 parseMarkdown |
+| 2026-05-02 | Phase 2: 消息操作增强 | 新增 copy + regenerate + 👍👎 反馈按钮 |
+| 2026-05-02 | Phase 2: 移动端优化 | 关闭毛玻璃 backdrop-filter |
+| 2026-05-02 | Phase 2: 流式动画 | 添加 subtleGlow glow 动画 |

@@ -103,6 +103,11 @@ body,html{background-color:var(--bg-dark);color:#e0e0e0;overflow-x:hidden;scroll
 .message.streaming .bubble{position:relative}
 .message.streaming .bubble::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--brand-light),transparent);animation:shimmer 1.5s infinite;border-radius:0 0 16px 16px}
 @keyframes shimmer{0%{opacity:0.3}50%{opacity:0.8}100%{opacity:0.3}}
+/* 流式生成 glow 动画 */
+.message.streaming .bubble{animation:subtleGlow 2s ease-in-out infinite}
+@keyframes subtleGlow{0%,100%{box-shadow:0 0 0 rgba(126,90,220,0)}50%{box-shadow:0 0 12px rgba(126,90,220,0.15)}}
+/* 流式文本层 */
+.stream-text{white-space:pre-wrap;word-break:break-word;font-size:0.88rem;color:rgba(255,255,255,0.85)}
 .generating-dots{display:inline-flex;gap:3px;margin-left:4px;vertical-align:middle}
 .generating-dots i{width:4px;height:4px;background:var(--brand-light);border-radius:50%;animation:dotPulse 1.2s infinite}
 .generating-dots i:nth-child(2){animation-delay:0.2s}
@@ -112,8 +117,10 @@ body,html{background-color:var(--bg-dark);color:#e0e0e0;overflow-x:hidden;scroll
 /* 消息操作 */
 .msg-actions{display:flex;gap:0.5rem;margin-top:0.5rem;padding:0 0.25rem}
 .action-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(126,90,220,0.15);border-radius:8px;padding:0.35rem 0.6rem;cursor:pointer;display:flex;align-items:center;gap:0.3rem;color:rgba(255,255,255,0.5);font-size:0.75rem;font-family:'Plus Jakarta Sans',sans-serif;transition:all 0.2s}
-.action-btn:hover{background:rgba(126,90,220,0.15);color:#fff;border-color:rgba(126,90,220,0.3)}
+.action-btn:hover{background:rgba(126,90,220,0.2);color:var(--brand-light);border-color:var(--brand)}
 .action-btn .material-symbols-outlined{font-size:16px}
+/* 反馈按钮 */
+.feedback-btn.active{background:rgba(126,90,220,0.25);color:var(--brand-light);border-color:var(--brand)}
 
 /* =========================================
  * 输入区（Cursor/Claude 风格一体化）
@@ -345,6 +352,9 @@ footer{text-align:center;padding:2rem 0;color:rgba(255,255,255,0.25);font-size:0
     .config-tabs{padding:0 0.5rem}
     .config-tab{padding:0.6rem 0.75rem;font-size:0.75rem}
     .agent-sidebar{width:230px}
+    /* 移动端关闭毛玻璃，降低 GPU 压力 */
+    .card-content{backdrop-filter:none;background:rgba(26,16,48,0.97)}
+    .tech-tag{backdrop-filter:none}
 }
 
 /* Markdown 增强 */

@@ -303,7 +303,7 @@ async function send() {
 
     const aiMsgEl = createStreamingMessage();
     streamingMsgEl = aiMsgEl;
-    const bubbleEl = aiMsgEl.querySelector('.bubble');
+    const textNode = aiMsgEl.querySelector('.stream-text');
     let fullText = '';
 
     const controller = new AbortController();
@@ -338,8 +338,9 @@ async function send() {
                     if (currentEvent === 'token') {
                         let token; try { token = JSON.parse(raw); } catch { token = raw; }
                         fullText += token;
-                        bubbleEl.innerHTML = parseMarkdown(fullText) + '<span class="streaming-cursor"></span>';
-                        renderMermaidInElement(bubbleEl); scrollToBottom();
+                        // 流式阶段：只更新 textNode，不走 parseMarkdown
+                        textNode.textContent = fullText;
+                        scrollToBottom();
                     } else if (currentEvent === 'done') {
                         try { const r = JSON.parse(raw); finalizeStreamingMessage(aiMsgEl, r.latencyMs, r.tokenUsage); updateStats(r.latencyMs); }
                         catch { finalizeStreamingMessage(aiMsgEl); }
@@ -347,10 +348,14 @@ async function send() {
                 }
             }
         }
-        bubbleEl.innerHTML = parseMarkdown(fullText); renderMermaidInElement(bubbleEl);
+        // 完成后一次性 parseMarkdown + Mermaid
+        const bubbleEl = aiMsgEl.querySelector('.bubble');
+        bubbleEl.innerHTML = parseMarkdown(fullText);
+        renderMermaidInElement(bubbleEl);
         if (bubbleEl.querySelector('.streaming-cursor')) finalizeStreamingMessage(aiMsgEl);
     } catch (e) {
         if (e.name !== 'AbortError') {
+            const bubbleEl = aiMsgEl.querySelector('.bubble');
             bubbleEl.innerHTML = parseMarkdown(fullText||'') + '<br><br>⚠️ ' + escapeHtml(e.message);
             const c = bubbleEl.querySelector('.streaming-cursor'); if (c) c.remove();
             finalizeStreamingMessage(aiMsgEl);
@@ -370,16 +375,7 @@ function addContinueButton(msgEl) {
     const btn = document.createElement('button'); btn.className='action-btn continue-btn'; btn.title='继续生成';
     btn.innerHTML='<span class="material-symbols-outlined">play_arrow</span>';
     btn.onclick=()=>{ const um=messages.querySelectorAll('.message.user'); if(!um.length) return; input.value=um[um.length-1].querySelector('.bubble').textContent; msgEl.remove(); send(); };
-    actions.appendChild(btn);
-}
-function addCopyButton(msgEl) {
-    if (msgEl.querySelector('.msg-actions .copy-btn')) return;
-    let actions = msgEl.querySelector('.msg-actions');
-    if (!actions) { actions = document.createElement('div'); actions.className='msg-actions'; msgEl.querySelector('.msg-body').appendChild(actions); }
-    const btn = document.createElement('button'); btn.className='action-btn copy-btn'; btn.title='复制';
-    btn.innerHTML='<span class="material-symbols-outlined">content_copy</span>';
-    btn.onclick=()=>{ navigator.clipboard.writeText(msgEl.querySelector('.bubble')?.textContent||'').then(()=>{ btn.innerHTML='<span class="material-symbols-outlined">check</span>'; setTimeout(()=>{ btn.innerHTML='<span class="material-symbols-outlined">content_copy</span>'; },1500); }); };
-    actions.appendChild(btn);
+    actions.prepend(btn);
 }
 
 function setSending(sending) {
@@ -389,16 +385,44 @@ function setSending(sending) {
 function createStreamingMessage() {
     const agent = config.agents.find(a=>a.id===activeAgentId);
     const div = document.createElement('div'); div.className='message ai streaming';
-    div.innerHTML=`<div class="msg-avatar">${agent?agent.emoji:'🧠'}</div><div class="msg-body"><div class="bubble"><span class="streaming-cursor"></span></div><div class="msg-meta"><span class="generating-text">正在生成</span><span class="generating-dots"><i></i><i></i><i></i></span></div></div>`;
-    messages.appendChild(div); addCopyButton(div); scrollToBottom(); return div;
+    div.innerHTML=`<div class="msg-avatar">${agent?agent.emoji:'🧠'}</div><div class="msg-body"><div class="bubble"><span class="stream-text"></span><span class="streaming-cursor"></span></div><div class="msg-meta"><span class="generating-text">正在生成</span><span class="generating-dots"><i></i><i></i><i></i></span></div></div>`;
+    messages.appendChild(div); scrollToBottom(); return div;
 }
 function finalizeStreamingMessage(msgEl, latency, tokenUsage) {
     msgEl.classList.remove('streaming');
     const c = msgEl.querySelector('.streaming-cursor'); if (c) c.remove();
     const meta = msgEl.querySelector('.msg-meta');
     if (meta) { const p=[]; if(latency) p.push(`${latency}ms`); if(tokenUsage?.totalTokens) p.push(`↑${tokenUsage.promptTokens} ↓${tokenUsage.completionTokens}`); p.push(new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})); meta.textContent=p.join(' · '); }
-    addCopyButton(msgEl);
+    addMessageActions(msgEl);
     $('msgCount').textContent = `消息: ${messages.querySelectorAll('.message').length}`;
+}
+function addMessageActions(msgEl) {
+    if (msgEl.querySelector('.msg-actions')) return;
+    const body = msgEl.querySelector('.msg-body');
+    const actions = document.createElement('div'); actions.className='msg-actions';
+
+    // 复制
+    const copyBtn = document.createElement('button'); copyBtn.className='action-btn copy-btn'; copyBtn.title='复制';
+    copyBtn.innerHTML='<span class="material-symbols-outlined">content_copy</span>';
+    copyBtn.onclick=()=>{ navigator.clipboard.writeText(msgEl.querySelector('.bubble')?.textContent||'').then(()=>{ copyBtn.innerHTML='<span class="material-symbols-outlined">check</span>'; setTimeout(()=>{ copyBtn.innerHTML='<span class="material-symbols-outlined">content_copy</span>'; },1500); }); };
+
+    // 重新生成
+    const regenBtn = document.createElement('button'); regenBtn.className='action-btn'; regenBtn.title='重新生成';
+    regenBtn.innerHTML='<span class="material-symbols-outlined">refresh</span>';
+    regenBtn.onclick=()=>{ const um=messages.querySelectorAll('.message.user'); if(!um.length) return; input.value=um[um.length-1].querySelector('.bubble').textContent; msgEl.remove(); send(); };
+
+    // 👍
+    const likeBtn = document.createElement('button'); likeBtn.className='action-btn feedback-btn'; likeBtn.title='有帮助';
+    likeBtn.innerHTML='<span class="material-symbols-outlined">thumb_up</span>';
+    likeBtn.onclick=()=>{ likeBtn.classList.toggle('active'); dislikeBtn.classList.remove('active'); };
+
+    // 👎
+    const dislikeBtn = document.createElement('button'); dislikeBtn.className='action-btn feedback-btn'; dislikeBtn.title='需改进';
+    dislikeBtn.innerHTML='<span class="material-symbols-outlined">thumb_down</span>';
+    dislikeBtn.onclick=()=>{ dislikeBtn.classList.toggle('active'); likeBtn.classList.remove('active'); };
+
+    actions.append(copyBtn, regenBtn, likeBtn, dislikeBtn);
+    body.appendChild(actions);
 }
 function addMessage(role, text) {
     const agent = config.agents.find(a=>a.id===activeAgentId);
@@ -406,7 +430,7 @@ function addMessage(role, text) {
     const content = role==='ai'?parseMarkdown(text):escapeHtml(text).replace(/\n/g,'<br>');
     div.innerHTML=`<div class="msg-avatar">${role==='user'?'👤':(agent?agent.emoji:'🧠')}</div><div class="msg-body"><div class="bubble">${content}</div><div class="msg-meta">${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div></div>`;
     messages.appendChild(div);
-    if (role==='ai') { renderMermaidInElement(div.querySelector('.bubble')); addCopyButton(div); }
+    if (role==='ai') { renderMermaidInElement(div.querySelector('.bubble')); addMessageActions(div); }
     scrollToBottom();
     $('msgCount').textContent = `消息: ${messages.querySelectorAll('.message').length}`;
 }

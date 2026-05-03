@@ -135,6 +135,14 @@ function tryParseJson(raw) {
         return raw;
     }
 }
+function normalizeModelBaseUrlInput(value) {
+    const original = (value || '').trim().replace(/\/+$/, '');
+    const cleaned = original.replace(/\/v1$/, '');
+    return {
+        value: cleaned || original,
+        changed: cleaned !== original,
+    };
+}
 
 // ===== Mermaid =====
 let useMermaid = false, mermaidCounter = 0;
@@ -822,7 +830,9 @@ const MODEL_FIELDS = [
 
 function addModel() {
     openModal('添加模型', MODEL_FIELDS, { provider:'自定义', baseUrl:'https://api.openai.com' }, data => {
-        config.models.push({ id:'m_'+Date.now(), ...data, active:true, requiresApiKey:true });
+        const baseUrl = normalizeModelBaseUrlInput(data.baseUrl);
+        if (baseUrl.changed) alert('已自动去掉 Base URL 末尾的 /v1，请只保留根地址。');
+        config.models.push({ id:'m_'+Date.now(), ...data, baseUrl: baseUrl.value, active:true, requiresApiKey:true });
         saveConfig(config); renderModelConfig(); renderModelDropdown();
     });
 }
@@ -831,6 +841,9 @@ function editModel(i) {
     if (src?.builtin) return;
     openModal('编辑模型', MODEL_FIELDS, config.models[i], data => {
         if (!data.apiKey) delete data.apiKey; // 留空则保留原值
+        const baseUrl = normalizeModelBaseUrlInput(data.baseUrl);
+        if (baseUrl.changed) alert('已自动去掉 Base URL 末尾的 /v1，请只保留根地址。');
+        data.baseUrl = baseUrl.value;
         Object.assign(config.models[i], data);
         saveConfig(config); renderModelConfig(); renderModelDropdown();
     });
@@ -838,7 +851,9 @@ function editModel(i) {
 function copyModel(i) {
     const src = config.models[i]; if (!src) return;
     openModal('复制模型', MODEL_FIELDS, { ...src, name: src.name+' (副本)', id:undefined }, data => {
-        config.models.push({ id:'m_'+Date.now(), ...data, active:true, requiresApiKey:true });
+        const baseUrl = normalizeModelBaseUrlInput(data.baseUrl);
+        if (baseUrl.changed) alert('已自动去掉 Base URL 末尾的 /v1，请只保留根地址。');
+        config.models.push({ id:'m_'+Date.now(), ...data, baseUrl: baseUrl.value, active:true, requiresApiKey:true });
         saveConfig(config); renderModelConfig(); renderModelDropdown();
     });
 }

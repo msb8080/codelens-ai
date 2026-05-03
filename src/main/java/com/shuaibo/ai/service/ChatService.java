@@ -52,6 +52,13 @@ public class ChatService {
         return chatModel; // 回退到默认
     }
 
+    private String extractAssistantContent(org.springframework.ai.chat.model.ChatResponse response) {
+        if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
+            return null;
+        }
+        return response.getResult().getOutput().getContent();
+    }
+
     /** 多轮对话上下文缓存 */
     private final Map<String, List<Message>> conversationHistory = new ConcurrentHashMap<>();
 
@@ -109,8 +116,11 @@ public class ChatService {
             // 3. 调用LLM（支持动态模型）
             ChatModel model = resolveModel(request.getModel(), request.getBaseUrl(), request.getApiKey());
             org.springframework.ai.chat.model.ChatResponse aiResponse = model.call(prompt);
-            AssistantMessage assistantMessage = aiResponse.getResult().getOutput();
-            String answer = assistantMessage.getContent();
+            String answer = extractAssistantContent(aiResponse);
+            if (answer == null) {
+                throw new UpstreamServiceException("模型未返回有效内容", null);
+            }
+            AssistantMessage assistantMessage = new AssistantMessage(answer);
 
             // 4. 保存对话历史
             messages.add(assistantMessage);
@@ -185,7 +195,7 @@ public class ChatService {
                     .subscribe(
                             chatResponse -> {
                                 lastResponse[0] = chatResponse;
-                                String content = chatResponse.getResult().getOutput().getContent();
+                                String content = extractAssistantContent(chatResponse);
                                 if (content != null) {
                                     fullAnswer.append(content);
                                     callback.onToken(content);

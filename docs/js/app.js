@@ -530,7 +530,7 @@ function addMessageActions(msgEl) {
 function addMessage(role, text) {
     const agent = config.agents.find(a=>a.id===activeAgentId);
     const div = document.createElement('div'); div.className=`message ${role}`;
-    const content = role==='ai'?parseMarkdown(text):escapeHtml(text).replace(/\n/g,'<br>');
+    const content = role==='ai'?parseMarkdown(text):escapeHtml(text);
     div.innerHTML=`<div class="msg-avatar">${role==='user'?'👤':(agent?agent.emoji:'🧠')}</div><div class="msg-body"><div class="bubble">${content}</div><div class="msg-meta">${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div></div>`;
     messages.appendChild(div);
     if (role==='ai') { renderMermaidInElement(div.querySelector('.bubble')); addMessageActions(div); addCodeCopyButtons(); }

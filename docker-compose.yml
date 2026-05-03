@@ -8,7 +8,7 @@ services:
     ports:
       - "8090:8090"
     environment:
-      - AI_BASE_URL=${AI_BASE_URL:-https://token-plan-cn.xiaomimimo.com}
+      - AI_BASE_URL=${AI_BASE_URL:-https://api.siliconflow.cn}
       - AI_API_KEY=${AI_API_KEY}
-      - AI_MODEL=${AI_MODEL:-mimo-v2.5-pro}
+      - AI_MODEL=${AI_MODEL:-Qwen/Qwen2.5-7B-Instruct}
     restart: unless-stopped

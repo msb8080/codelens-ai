@@ -124,9 +124,9 @@ git clone https://github.com/msb8080/codelens-ai.git
 cd codelens-ai
 
 # 2. 配置环境变量
-export AI_BASE_URL=https://token-plan-cn.xiaomimimo.com
+export AI_BASE_URL=https://api.siliconflow.cn
 export AI_API_KEY=你的API密钥
-export AI_MODEL=mimo-v2.5-pro
+export AI_MODEL=Qwen/Qwen2.5-7B-Instruct
 
 # 3. 构建并启动
 mvn clean package -DskipTests
@@ -280,9 +280,9 @@ codelens-ai/
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `AI_BASE_URL` | `https://token-plan-cn.xiaomimimo.com` | 模型 API 地址（不含 /v1） |
+| `AI_BASE_URL` | `https://api.siliconflow.cn` | 模型 API 地址（不含 /v1） |
 | `AI_API_KEY` | — | 模型 API 密钥 |
-| `AI_MODEL` | `mimo-v2.5-pro` | 默认模型名称 |
+| `AI_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | 默认模型名称 |
 
 ---
 

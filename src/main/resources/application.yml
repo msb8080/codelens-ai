@@ -8,11 +8,11 @@ spring:
   # AI模型配置 (OpenAI 兼容接口)
   ai:
     openai:
-      base-url: ${AI_BASE_URL:https://token-plan-cn.xiaomimimo.com}
+      base-url: ${AI_BASE_URL:https://api.siliconflow.cn}
       api-key: ${AI_API_KEY:}
       chat:
         options:
-          model: ${AI_MODEL:mimo-v2.5-pro}
+          model: ${AI_MODEL:Qwen/Qwen2.5-7B-Instruct}
           temperature: 0.7
           max-tokens: 2048
 

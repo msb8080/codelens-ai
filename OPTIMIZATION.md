@@ -13,14 +13,14 @@
 
 | # | 类别 | 问题 | 方案 | 状态 | 备注 |
 |---|------|------|------|------|------|
-| 0.1 | 安全 | `.env.example` 含小米 mimo 真实 API Key | 改为占位符 `tp-your-api-key-here` | ✅ | 同时修正 Base URL 去掉 /v1，统一模型为 mimo-v2.5-pro |
+| 0.1 | 安全 | `.env.example` 含小米 mimo 真实 API Key | 改为占位符 `sk-your-api-key-here` | ✅ | 修正 Base URL 去掉 /v1，默认模型改为硅基流动 |
 | 0.2 | 安全 | `docker-compose.yml` 环境变量默认值含真实 Key | 去掉默认值，强制 `.env` 注入 | ✅ | |
-| 0.3 | 安全 | `application.yml` 含硅基流动真实 Key 默认值 | 默认值改为空，启动时必须通过环境变量注入 | ✅ | 同时统一默认模型为 mimo-v2.5-pro |
+| 0.3 | 安全 | `application.yml` 含硅基流动真实 Key 默认值 | 默认值改为空，启动时必须通过环境变量注入 | ✅ | 默认模型统一为硅基流动 Qwen2.5-7B |
 | 0.4 | 安全 | 前端 `app.js` `defaultConfig()` 含 API Key 明文 | 去掉默认 Key，首次使用弹窗配置 | ✅ | 添加 `showFirstTimeSetup()` 引导 |
 | 0.5 | 部署 | Render Free 计划 15 分钟休眠，冷启动 ~30s | 接受冷启动，不付费 | ⏭️ | 免费方案有限，接受延迟 |
 | 0.6 | 部署 | Render 无 Qdrant，生产 RAG 不可用 | 去除 Qdrant 依赖，RagService 保留空接口 | ✅ | 删除 QdrantConfig + 依赖 + 配置 |
 | 0.7 | 配置 | `.env.example` 的 Base URL 多了 `/v1` | 去掉 `/v1`（Spring AI 自动追加） | ✅ | 随 0.1 一起修复 |
-| 0.8 | 配置 | `application.yml` 默认模型是硅基流动，其他地方用小米 mimo | 统一默认提供商为小米 mimo | ✅ | 随 0.3 一起修复 |
+| 0.8 | 配置 | `application.yml` 默认模型是硅基流动，其他地方用小米 mimo | 统一默认提供商为硅基流动 Qwen2.5-7B | ✅ | 全局统一 |
 
 ---
 

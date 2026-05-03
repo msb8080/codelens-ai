@@ -128,6 +128,13 @@ function parseMarkdown(text) {
     try { return marked.parse(text); } catch { return escapeHtml(text).replace(/\n/g,'<br>'); }
 }
 function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function tryParseJson(raw) {
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return raw;
+    }
+}
 
 // ===== Mermaid =====
 let useMermaid = false, mermaidCounter = 0;
@@ -468,10 +475,10 @@ async function send() {
                         textNode.textContent = fullText;
                         scrollToBottom();
                     } else if (currentEvent === 'done') {
-                        try { const r = JSON.parse(raw); finalizeStreamingMessage(aiMsgEl, r.latencyMs, r.tokenUsage); updateStats(r.latencyMs, r.tokenUsage); }
+                        try { const r = tryParseJson(raw); finalizeStreamingMessage(aiMsgEl, r.latencyMs, r.tokenUsage); updateStats(r.latencyMs, r.tokenUsage); }
                         catch { finalizeStreamingMessage(aiMsgEl); }
                     } else if (currentEvent === 'error') {
-                        const err = JSON.parse(raw);
+                        const err = tryParseJson(raw);
                         throw new Error(err?.message || raw || '请求失败');
                     }
                 }

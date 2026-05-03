@@ -73,7 +73,10 @@ public class ChatController {
                     try {
                         emitter.send(SseEmitter.event()
                                 .name("error")
-                                .data(error.getMessage() == null ? "请求失败" : error.getMessage()));
+                                .data(Map.of(
+                                        "message", error.getMessage() == null ? "请求失败" : error.getMessage(),
+                                        "error", error.getClass().getSimpleName()
+                                )));
                         emitter.complete();
                     } catch (IOException e) {
                         emitter.completeWithError(e);

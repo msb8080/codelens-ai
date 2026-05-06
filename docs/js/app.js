@@ -449,8 +449,39 @@ async function send() {
         apiKey: model?.apiKey || undefined,
     };
 
+    // 后端冷启动提示 + 请求超时/重试
+    let fetchTimeout = null;
+    const fetchWithRetry = async (url, opts, maxRetries = 1) => {
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            // 60s 超时（兼容 Render 冷启动）
+            const ac = new AbortController();
+            fetchTimeout = setTimeout(() => ac.abort(), 60000);
+            opts.signal = ac.signal;
+            try {
+                const r = await fetch(url, opts);
+                clearTimeout(fetchTimeout);
+                return r;
+            } catch (e) {
+                clearTimeout(fetchTimeout);
+                // 首次失败 5s 后显示唤醒提示
+                if (attempt === 0 && e.name === 'AbortError') {
+                    const meta = aiMsgEl.querySelector('.msg-meta');
+                    if (meta) meta.textContent = '⏳ 服务唤醒中，正在重试…（最长约 60s）';
+                }
+                if (attempt < maxRetries) { await new Promise(r => setTimeout(r, 1000)); continue; }
+                throw e;
+            }
+        }
+    };
+    // 8s 无响应时显示冷启动提示
+    const coldStartHint = setTimeout(() => {
+        if (streamingMsgEl === aiMsgEl && !fullText) {
+            const meta = aiMsgEl.querySelector('.msg-meta');
+            if (meta) meta.textContent = '⏳ 后端唤醒中，请稍候…（免费服务冷启动约 30-60s）';
+        }
+    }, 8000);
     try {
-        const res = await fetch(`${getApiBase()}/api/chat/stream`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body), signal:controller.signal });
+        const res = await fetchWithRetry(`${getApiBase()}/api/chat/stream`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
         if (!res.ok) {
             let errorMessage = `HTTP ${res.status}`;
             let errorCode = '';
@@ -535,7 +566,7 @@ async function send() {
             if (meta) meta.textContent = '⚠️ 错误 · ' + new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
             addMessageActions(aiMsgEl);
         }
-    } finally { setSending(false); currentAbort = null; streamingMsgEl = null; input.focus(); }
+    } finally { clearTimeout(coldStartHint); clearTimeout(fetchTimeout); setSending(false); currentAbort = null; streamingMsgEl = null; input.focus(); }
 }
 
 function finalizeStopped(msgEl, fullText) {

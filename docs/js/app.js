@@ -55,7 +55,7 @@ const STORAGE_KEY = 'omniagent-config-v2';
 
 function defaultConfig() {
     return {
-        apiUrl: '',
+        apiUrl: 'https://codelens-ai-ghfh.onrender.com',
         models: [{
             id: 'builtin-free',
             name: '默认免费模型',
